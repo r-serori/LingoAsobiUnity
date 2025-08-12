@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ce07e317f2ab4091ae7b2e51960b74c, type: 3}
+  m_Name: CharacterManager
+  m_EditorClassIdentifier: 
+  characters:
+  - characterId: char_001
+    characterName: "\u30AD\u30E3\u30E91"
+    description: "\u30AD\u30E3\u30E91\u3067\u3059\u3002\u6587\u6CD5\u304C\u5F97\u610F\u3002"
+    portraitImagePath: Character/ex_character1
+    fullBodyImagePath: Character/ex_character1
+    avatarImagePath: Character/ex_character1
+    iconImagePath: Character/ex_character1
+    defaultAnimation: 0
+    animationSpeed: 0
+    enableRandomAnimation: 1
+    rarity: 0
+    isUnlocked: 1
+    isFavorite: 1
+  defaultCharacterId: char_001

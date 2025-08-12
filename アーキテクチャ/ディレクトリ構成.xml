@@ -1,0 +1,90 @@
+Scripts/
+  Runtime/
+    Core/                           # コア機能
+      DataManager.cs                # 中央データ管理
+      APIClient.cs                  # API通信クライアント
+      EventBus.cs                   # イベント管理
+      GameConfig.cs                 # ゲーム設定
+    
+    Data/                          # データ関連
+      Models/                      # データモデル
+        User/
+          UserProfile.cs
+          CurrencyData.cs
+          StaminaData.cs
+        Character/
+          CharacterData.cs
+          CharacterStats.cs
+        Shop/
+          ShopItem.cs
+          ShopCategory.cs
+        Quest/
+          QuestData.cs
+          QuestProgress.cs
+        Inventory/
+          InventoryItem.cs
+          ItemData.cs
+      
+      Repositories/                # データアクセス層
+        Base/
+          IRepository.cs           # 基底インターフェース
+          BaseRepository.cs        # 基底実装
+        UserRepository.cs
+        CharacterRepository.cs
+        ShopRepository.cs
+        QuestRepository.cs
+        InventoryRepository.cs
+      
+      Cache/                       # キャッシュ管理
+        DataCache.cs
+        CacheEntry.cs
+      
+      Persistence/                 # データ永続化
+        LocalDataStorage.cs
+        SaveDataManager.cs
+    
+    Network/                       # ネットワーク関連
+      APIEndpoints.cs              # API エンドポイント定義
+      NetworkManager.cs            # ネットワーク状態管理
+      RequestModels/               # APIリクエストモデル
+        LoginRequest.cs
+        BulkDataRequest.cs
+        SyncRequest.cs
+      ResponseModels/              # APIレスポンスモデル
+        LoginResponse.cs
+        BulkDataResponse.cs
+        SyncResponse.cs
+    
+    Views/                         # UI関連
+      Base/
+        BaseView.cs                # 基底Viewクラス
+        BaseScene.cs               # 基底Sceneクラス
+      
+      Features/                    # 機能別View
+        Home/
+          HomeScene.cs
+          HomeView.cs
+        Character/
+          CharacterScene.cs
+          CharacterListView.cs
+          CharacterDetailView.cs
+        Shop/
+          ShopScene.cs
+          ShopView.cs
+          ShopItemView.cs
+        Quest/
+          QuestScene.cs
+          QuestListView.cs
+        Inventory/
+          InventoryScene.cs
+          InventoryView.cs
+    
+    Utilities/                     # ユーティリティ
+      Extensions/
+        UnityExtensions.cs
+      Helpers/
+        SceneHelper.cs
+        UIHelper.cs
+      Constants/
+        GameConstants.cs
+        SceneNames.cs
