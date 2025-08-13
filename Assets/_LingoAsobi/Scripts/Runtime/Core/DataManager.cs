@@ -1,246 +1,270 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using Scripts.Runtime.Data.Repositories;
+using Scripts.Runtime.Data.Models.User;
+using Scripts.Runtime.Data.Models.Character;
+using Scripts.Runtime.Data.Cache;
 
-/// <summary>
-/// 中央データ管理クラス - 全てのデータアクセスのハブ
-/// </summary>
-public class DataManager : MonoBehaviour
+namespace Scripts.Runtime.Core
 {
-  #region Singleton
-  public static DataManager Instance { get; private set; }
-
-  private void Awake()
-  {
-    if (Instance == null)
-    {
-      Instance = this;
-      DontDestroyOnLoad(gameObject);
-      InitializeRepositories();
-    }
-    else
-    {
-      Destroy(gameObject);
-    }
-  }
-  #endregion
-
-  #region Repositories
-  public UserRepository Users { get; private set; }
-  public CharacterRepository Characters { get; private set; }
-  public ShopRepository Shop { get; private set; }
-  public QuestRepository Quests { get; private set; }
-  public InventoryRepository Inventory { get; private set; }
-  #endregion
-
-  #region Core Services
-  public APIClient API { get; private set; }
-  public DataCache Cache { get; private set; }
-  public LocalDataStorage LocalStorage { get; private set; }
-  #endregion
-
-  #region Properties
-  public bool IsInitialized { get; private set; }
-  public bool IsOnline => Application.internetReachability != NetworkReachability.NotReachable;
-  #endregion
-
-  #region Events
-  public static event Action OnDataInitialized;
-  public static event Action<string> OnDataUpdated;
-  public static event Action<string> OnDataLoadFailed;
-  #endregion
-
-  private void InitializeRepositories()
-  {
-    // コアサービス初期化
-    API = GetComponent<APIClient>() ?? gameObject.AddComponent<APIClient>();
-    Cache = new DataCache();
-    LocalStorage = new LocalDataStorage();
-
-    // リポジトリ初期化（依存性注入）
-    Users = new UserRepository(API, Cache, LocalStorage);
-    Characters = new CharacterRepository(API, Cache, LocalStorage);
-    Shop = new ShopRepository(API, Cache, LocalStorage);
-    Quests = new QuestRepository(API, Cache, LocalStorage);
-    Inventory = new InventoryRepository(API, Cache, LocalStorage);
-
-    Debug.Log("DataManager repositories initialized");
-  }
-
   /// <summary>
-  /// 初回データロード
+  /// 中央データ管理クラス
+  /// すべてのデータリポジトリへのアクセスポイント
+  /// データの同期とキャッシュ管理を統括
   /// </summary>
-  public async Task InitializeAsync()
+  public class DataManager : MonoBehaviour
   {
-    try
+    // シングルトンインスタンス
+    private static DataManager _instance;
+    public static DataManager Instance
     {
-      Debug.Log("Starting data initialization...");
-
-      // Phase 1: 必須データの読み込み
-      await LoadCriticalDataAsync();
-
-      // Phase 2: よく使うデータの読み込み
-      await LoadFrequentDataAsync();
-
-      IsInitialized = true;
-      OnDataInitialized?.Invoke();
-
-      Debug.Log("Data initialization completed");
-
-      // Phase 3: バックグラウンドで残りのデータ読み込み
-      _ = LoadRemainingDataAsync();
-    }
-    catch (Exception ex)
-    {
-      Debug.LogError($"Data initialization failed: {ex.Message}");
-      OnDataLoadFailed?.Invoke("initialization");
-      throw;
-    }
-  }
-
-  private async Task LoadCriticalDataAsync()
-  {
-    // 最重要データ - アプリ起動に必須
-    var tasks = new Task[]
-    {
-            Users.LoadUserProfileAsync(),
-            Users.LoadCurrencyAsync(),
-            Users.LoadStaminaAsync()
-    };
-
-    await Task.WhenAll(tasks);
-    Debug.Log("Critical data loaded");
-  }
-
-  private async Task LoadFrequentDataAsync()
-  {
-    // よく使用されるデータ - ホーム画面表示に必要
-    var tasks = new Task[]
-    {
-            Characters.LoadUserCharactersAsync(),
-            Inventory.LoadInventoryAsync(),
-            Quests.LoadActiveQuestsAsync()
-    };
-
-    await Task.WhenAll(tasks);
-    Debug.Log("Frequent data loaded");
-  }
-
-  private async Task LoadRemainingDataAsync()
-  {
-    // その他のデータ - バックグラウンドで読み込み
-    try
-    {
-      await Shop.LoadShopDataAsync();
-      await Quests.LoadAllQuestsAsync();
-      Debug.Log("Remaining data loaded");
-    }
-    catch (Exception ex)
-    {
-      Debug.LogWarning($"Background data loading failed: {ex.Message}");
-    }
-  }
-
-  /// <summary>
-  /// 定期的なデータ同期
-  /// </summary>
-  public async Task SyncDataAsync()
-  {
-    if (!IsOnline) return;
-
-    try
-    {
-      // 変更されやすいデータのみ同期
-      var syncTasks = new Task[]
+      get
       {
-                Users.SyncStaminaAsync(),
-                Shop.SyncShopDataAsync(),
-                Quests.SyncQuestProgressAsync()
-      };
-
-      await Task.WhenAll(syncTasks);
-      OnDataUpdated?.Invoke("sync");
-      Debug.Log("Data sync completed");
+        if (_instance == null)
+        {
+          GameObject go = new GameObject("DataManager");
+          _instance = go.AddComponent<DataManager>();
+          DontDestroyOnLoad(go);
+        }
+        return _instance;
+      }
     }
-    catch (Exception ex)
-    {
-      Debug.LogError($"Data sync failed: {ex.Message}");
-    }
-  }
 
-  /// <summary>
-  /// 特定データの強制リフレッシュ
-  /// </summary>
-  public async Task RefreshDataAsync(string dataType)
-  {
-    try
+    // リポジトリ
+    private UserRepository _userRepository;
+    private CharacterRepository _characterRepository;
+
+    // データキャッシュ
+    private DataCache _cache;
+
+    // 初期化フラグ
+    private bool _isInitialized = false;
+
+    // イベント
+    public event Action OnDataInitialized;
+    public event Action<string> OnDataError;
+
+    /// <summary>
+    /// 初期化
+    /// </summary>
+    private void Awake()
     {
-      switch (dataType.ToLower())
+      if (_instance != null && _instance != this)
       {
-        case "user":
-          await Users.RefreshAllAsync();
-          break;
-        case "characters":
-          await Characters.RefreshAllAsync();
-          break;
-        case "shop":
-          await Shop.RefreshAllAsync();
-          break;
-        case "quests":
-          await Quests.RefreshAllAsync();
-          break;
-        case "inventory":
-          await Inventory.RefreshAllAsync();
-          break;
-        default:
-          Debug.LogWarning($"Unknown data type for refresh: {dataType}");
-          return;
+        Destroy(gameObject);
+        return;
       }
 
-      OnDataUpdated?.Invoke(dataType);
-      Debug.Log($"{dataType} data refreshed");
-    }
-    catch (Exception ex)
-    {
-      Debug.LogError($"Failed to refresh {dataType}: {ex.Message}");
-      OnDataLoadFailed?.Invoke(dataType);
-    }
-  }
+      _instance = this;
+      DontDestroyOnLoad(gameObject);
 
-  /// <summary>
-  /// アプリ終了時のデータ保存
-  /// </summary>
-  private void OnApplicationPause(bool pauseStatus)
-  {
-    if (pauseStatus && IsInitialized)
-    {
-      SaveAllDataToLocal();
+      InitializeRepositories();
     }
-  }
 
-  private void OnApplicationFocus(bool hasFocus)
-  {
-    if (!hasFocus && IsInitialized)
+    /// <summary>
+    /// リポジトリの初期化
+    /// </summary>
+    private void InitializeRepositories()
     {
-      SaveAllDataToLocal();
+      _userRepository = UserRepository.Instance;
+      _characterRepository = CharacterRepository.Instance;
+      _cache = DataCache.Instance;
+
+      Debug.Log("[DataManager] Repositories initialized");
     }
-  }
 
-  private void SaveAllDataToLocal()
-  {
-    try
+    /// <summary>
+    /// データの初期化と読み込み
+    /// </summary>
+    public async Task InitializeAsync()
     {
-      Users.SaveToLocal();
-      Characters.SaveToLocal();
-      Shop.SaveToLocal();
-      Quests.SaveToLocal();
-      Inventory.SaveToLocal();
+      if (_isInitialized)
+      {
+        Debug.Log("[DataManager] Already initialized");
+        return;
+      }
 
-      Debug.Log("All data saved to local storage");
+      try
+      {
+        Debug.Log("[DataManager] Starting data initialization...");
+
+        // ユーザーデータの読み込み
+        var userProfile = await _userRepository.GetCurrentUserAsync();
+        if (userProfile == null)
+        {
+          Debug.LogWarning("[DataManager] No user profile found, creating default");
+          // デフォルトユーザーでログイン
+          userProfile = await _userRepository.LoginAsync("test@example.com", "password");
+        }
+
+        // キャラクターデータの読み込み
+        var characters = await _characterRepository.GetAllAsync();
+        Debug.Log($"[DataManager] Loaded {characters.Count} characters");
+
+        // その他の初期データ読み込み
+        await LoadInitialDataAsync();
+
+        _isInitialized = true;
+        OnDataInitialized?.Invoke();
+
+        Debug.Log("[DataManager] Data initialization complete");
+      }
+      catch (Exception e)
+      {
+        Debug.LogError($"[DataManager] Initialization failed: {e.Message}");
+        OnDataError?.Invoke(e.Message);
+      }
     }
-    catch (Exception ex)
+
+    /// <summary>
+    /// 初期データの読み込み
+    /// </summary>
+    private async Task LoadInitialDataAsync()
     {
-      Debug.LogError($"Failed to save data to local storage: {ex.Message}");
+      // 一括データ取得（本番環境では専用のBulk APIを使用）
+      var tasks = new List<Task>
+      {
+        // 今後追加するリポジトリのデータ読み込み
+        // _shopRepository.GetAllAsync(),
+        // _questRepository.GetAllAsync(),
+        // _inventoryRepository.GetAllAsync()
+      };
+
+      await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
+    /// 現在のユーザープロファイルを取得
+    /// </summary>
+    public async Task<UserProfile> GetCurrentUserAsync()
+    {
+      if (!_isInitialized)
+      {
+        await InitializeAsync();
+      }
+
+      return await _userRepository.GetCurrentUserAsync();
+    }
+
+    /// <summary>
+    /// キャラクターデータを取得
+    /// </summary>
+    public async Task<CharacterData> GetCharacterAsync(string characterId)
+    {
+      return await _characterRepository.GetByIdAsync(characterId);
+    }
+
+    /// <summary>
+    /// すべてのキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetAllCharactersAsync()
+    {
+      return await _characterRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// アンロック済みキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetUnlockedCharactersAsync()
+    {
+      return await _characterRepository.GetUnlockedCharactersAsync();
+    }
+
+    /// <summary>
+    /// データを同期
+    /// </summary>
+    public async Task SyncDataAsync()
+    {
+      try
+      {
+        Debug.Log("[DataManager] Starting data sync...");
+
+        // キャッシュをクリア
+        _cache.ClearAll();
+
+        // 最新データを取得
+        await InitializeAsync();
+
+        Debug.Log("[DataManager] Data sync complete");
+      }
+      catch (Exception e)
+      {
+        Debug.LogError($"[DataManager] Sync failed: {e.Message}");
+        OnDataError?.Invoke(e.Message);
+      }
+    }
+
+    /// <summary>
+    /// ログアウト処理
+    /// </summary>
+    public void Logout()
+    {
+      _userRepository.Logout();
+      _cache.ClearAll();
+      _isInitialized = false;
+
+      Debug.Log("[DataManager] User logged out and data cleared");
+    }
+
+    /// <summary>
+    /// アプリケーション終了時の処理
+    /// </summary>
+    private void OnApplicationPause(bool pauseStatus)
+    {
+      if (pauseStatus)
+      {
+        // バックグラウンドに移行時
+        SaveLocalData();
+      }
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+      if (!hasFocus)
+      {
+        // フォーカスを失った時
+        SaveLocalData();
+      }
+    }
+
+    private void OnDestroy()
+    {
+      SaveLocalData();
+    }
+
+    /// <summary>
+    /// ローカルデータの保存
+    /// </summary>
+    private void SaveLocalData()
+    {
+      // 重要なデータをPlayerPrefsに保存
+      PlayerPrefs.Save();
+      Debug.Log("[DataManager] Local data saved");
+    }
+
+    /// <summary>
+    /// キャッシュ統計情報を取得
+    /// </summary>
+    public CacheStatistics GetCacheStatistics()
+    {
+      return _cache.GetStatistics();
+    }
+
+    /// <summary>
+    /// デバッグ情報を出力
+    /// </summary>
+    [ContextMenu("Print Debug Info")]
+    public void PrintDebugInfo()
+    {
+      Debug.Log("=== DataManager Debug Info ===");
+      Debug.Log($"Initialized: {_isInitialized}");
+
+      var stats = GetCacheStatistics();
+      Debug.Log($"Cache entries: {stats.TotalEntries}");
+      Debug.Log($"Cache size: {stats.TotalSize / 1024f:F2} KB");
+      Debug.Log($"Oldest entry age: {stats.OldestEntryAge.TotalMinutes:F1} minutes");
     }
   }
 }

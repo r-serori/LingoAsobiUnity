@@ -3,314 +3,267 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using Scripts.Runtime.Data.Models.Character;
+using Scripts.Runtime.Data.Repositories.Base;
 
-/// <summary>
-/// キャラクター関連データの管理リポジトリ
-/// </summary>
-public class CharacterRepository : BaseRepository
+namespace Scripts.Runtime.Data.Repositories
 {
-  // キャッシュキー定数
-  private const string USER_CHARACTERS_KEY = "user_characters";
-  private const string CHARACTER_DETAILS_KEY = "character_details";
-  private const string AVAILABLE_CHARACTERS_KEY = "available_characters";
-
-  // イベント
-  public static event Action<CharacterData[]> OnUserCharactersUpdated;
-  public static event Action<CharacterData> OnCharacterUpdated;
-  public static event Action<int> OnCharacterLevelUp;
-
-  public CharacterRepository(APIClient api, DataCache cache, LocalDataStorage localStorage)
-      : base(api, cache, localStorage, "Character")
-  {
-  }
-
-  #region Public Methods
-
   /// <summary>
-  /// ユーザーが所持しているキャラクター一覧を取得
+  /// キャラクターデータのリポジトリクラス
+  /// キャラクター情報のCRUD操作を管理
   /// </summary>
-  public async Task<CharacterData[]> GetUserCharactersAsync()
+  public class CharacterRepository : BaseRepository<CharacterData>
   {
-    return await GetDataAsync(
-        USER_CHARACTERS_KEY,
-        apiFetcher: () => api.GetAsync<CharacterData[]>("/api/characters/user"),
-        localFetcher: () => localStorage.Load<CharacterData[]>(GetLocalKey(USER_CHARACTERS_KEY))
-    ) ?? new CharacterData[0];
-  }
+    // APIエンドポイント
+    protected override string EndpointUrl => "/api/characters";
 
-  /// <summary>
-  /// 特定キャラクターの詳細情報を取得
-  /// </summary>
-  public async Task<CharacterData> GetCharacterDetailsAsync(int characterId)
-  {
-    var detailsKey = $"{CHARACTER_DETAILS_KEY}_{characterId}";
+    // キャッシュキーのプレフィックス
+    protected override string CacheKeyPrefix => "character";
 
-    return await GetDataAsync(
-        detailsKey,
-        apiFetcher: () => api.GetAsync<CharacterData>($"/api/characters/{characterId}"),
-        localFetcher: () => localStorage.Load<CharacterData>(GetLocalKey(detailsKey))
-    );
-  }
-
-  /// <summary>
-  /// 入手可能なキャラクター一覧を取得
-  /// </summary>
-  public async Task<CharacterData[]> GetAvailableCharactersAsync()
-  {
-    return await GetDataAsync(
-        AVAILABLE_CHARACTERS_KEY,
-        apiFetcher: () => api.GetAsync<CharacterData[]>("/api/characters/available"),
-        localFetcher: () => localStorage.Load<CharacterData[]>(GetLocalKey(AVAILABLE_CHARACTERS_KEY))
-    ) ?? new CharacterData[0];
-  }
-
-  /// <summary>
-  /// ユーザーキャラクターデータの初回読み込み
-  /// </summary>
-  public async Task LoadUserCharactersAsync()
-  {
-    try
+    // シングルトンインスタンス
+    private static CharacterRepository _instance;
+    public static CharacterRepository Instance
     {
-      var characters = await GetUserCharactersAsync();
-      OnUserCharactersUpdated?.Invoke(characters);
-      Debug.Log($"[CharacterRepository] Loaded {characters.Length} user characters");
-    }
-    catch (Exception ex)
-    {
-      HandleError("LoadUserCharacters", ex);
-    }
-  }
-
-  /// <summary>
-  /// キャラクターのレベルアップ
-  /// </summary>
-  public async Task<bool> LevelUpCharacterAsync(int characterId)
-  {
-    try
-    {
-      // APIにレベルアップリクエスト送信
-      var request = new LevelUpRequest { CharacterId = characterId };
-      var response = await api.PostAsync<LevelUpResponse>("/api/characters/level-up", request);
-
-      if (response.Success)
+      get
       {
-        // ローカルキャッシュを更新
-        await UpdateCharacterInCache(response.UpdatedCharacter);
-
-        OnCharacterLevelUp?.Invoke(characterId);
-        Debug.Log($"[CharacterRepository] Character {characterId} leveled up to {response.UpdatedCharacter.Level}");
-        return true;
+        if (_instance == null)
+        {
+          _instance = new CharacterRepository();
+        }
+        return _instance;
       }
-      else
+    }
+
+    /// <summary>
+    /// プライベートコンストラクタ（シングルトン）
+    /// </summary>
+    private CharacterRepository() : base()
+    {
+    }
+
+    /// <summary>
+    /// レアリティでキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetByRarityAsync(Rarity rarity)
+    {
+      var allCharacters = await GetAllAsync();
+      return allCharacters.Where(c => c.rarity == rarity).ToList();
+    }
+
+    /// <summary>
+    /// アンロック済みのキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetUnlockedCharactersAsync()
+    {
+      var allCharacters = await GetAllAsync();
+      return allCharacters.Where(c => c.isUnlocked).ToList();
+    }
+
+    /// <summary>
+    /// お気に入りのキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetFavoriteCharactersAsync()
+    {
+      var allCharacters = await GetAllAsync();
+      return allCharacters.Where(c => c.isFavorite && c.isUnlocked).ToList();
+    }
+
+    /// <summary>
+    /// キャラクターをアンロック
+    /// </summary>
+    public async Task<bool> UnlockCharacterAsync(string characterId)
+    {
+      var character = await GetByIdAsync(characterId);
+      if (character == null || character.isUnlocked)
       {
-        Debug.LogWarning($"[CharacterRepository] Level up failed: {response.ErrorMessage}");
         return false;
       }
+
+      character.isUnlocked = true;
+      character.unlockedDate = DateTime.Now;
+
+      // APIで更新（Mockでは省略）
+      await UpdateAsync(character);
+
+      Debug.Log($"[CharacterRepository] Character unlocked: {character.characterName}");
+      return true;
     }
-    catch (Exception ex)
+
+    /// <summary>
+    /// キャラクターのお気に入り状態を切り替え
+    /// </summary>
+    public async Task<bool> ToggleFavoriteAsync(string characterId)
     {
-      HandleError($"LevelUpCharacter_{characterId}", ex);
-      return false;
-    }
-  }
-
-  /// <summary>
-  /// キャラクター装備変更
-  /// </summary>
-  public async Task<bool> EquipItemAsync(int characterId, int itemId, EquipmentSlot slot)
-  {
-    try
-    {
-      var request = new EquipItemRequest
+      var character = await GetByIdAsync(characterId);
+      if (character == null || !character.isUnlocked)
       {
-        CharacterId = characterId,
-        ItemId = itemId,
-        Slot = slot
-      };
-
-      var response = await api.PostAsync<EquipItemResponse>("/api/characters/equip", request);
-
-      if (response.Success)
-      {
-        await UpdateCharacterInCache(response.UpdatedCharacter);
-        OnCharacterUpdated?.Invoke(response.UpdatedCharacter);
-        return true;
+        return false;
       }
 
-      return false;
+      character.ToggleFavorite();
+      await UpdateAsync(character);
+
+      Debug.Log($"[CharacterRepository] Favorite toggled for: {character.characterName} -> {character.isFavorite}");
+      return true;
     }
-    catch (Exception ex)
+
+    /// <summary>
+    /// キャラクターのレベルアップ
+    /// </summary>
+    public async Task<bool> LevelUpCharacterAsync(string characterId, int levels = 1)
     {
-      HandleError($"EquipItem_{characterId}_{itemId}", ex);
-      return false;
-    }
-  }
-
-  /// <summary>
-  /// キャラクター検索（ローカルキャッシュから）
-  /// </summary>
-  public async Task<CharacterData[]> SearchCharactersAsync(string query, CharacterRarity? rarity = null)
-  {
-    var allCharacters = await GetUserCharactersAsync();
-
-    var filtered = allCharacters.Where(c =>
-    {
-      var matchesName = string.IsNullOrEmpty(query) ||
-                          c.Name.ToLower().Contains(query.ToLower());
-      var matchesRarity = rarity == null || c.Rarity == rarity;
-
-      return matchesName && matchesRarity;
-    });
-
-    return filtered.ToArray();
-  }
-
-  #endregion
-
-  #region Private Methods
-
-  /// <summary>
-  /// キャッシュ内のキャラクター情報を更新
-  /// </summary>
-  private async Task UpdateCharacterInCache(CharacterData updatedCharacter)
-  {
-    // ユーザーキャラクター一覧のキャッシュを更新
-    var userCharacters = GetCache<CharacterData[]>(USER_CHARACTERS_KEY);
-    if (userCharacters != null)
-    {
-      var index = Array.FindIndex(userCharacters, c => c.Id == updatedCharacter.Id);
-      if (index >= 0)
+      var character = await GetByIdAsync(characterId);
+      if (character == null || !character.isUnlocked)
       {
-        userCharacters[index] = updatedCharacter;
-        SetCache(USER_CHARACTERS_KEY, userCharacters, TimeSpan.FromMinutes(30));
-      }
-    }
-
-    // 個別キャラクター詳細のキャッシュを更新
-    var detailsKey = $"{CHARACTER_DETAILS_KEY}_{updatedCharacter.Id}";
-    SetCache(detailsKey, updatedCharacter, TimeSpan.FromMinutes(30));
-
-    OnCharacterUpdated?.Invoke(updatedCharacter);
-  }
-
-  #endregion
-
-  #region BaseRepository Implementation
-
-  public override async Task RefreshAllAsync()
-  {
-    try
-    {
-      // 全キャッシュを無効化
-      InvalidateCache(USER_CHARACTERS_KEY);
-      InvalidateCache(AVAILABLE_CHARACTERS_KEY);
-
-      // 再読み込み
-      var userCharacters = await GetUserCharactersAsync();
-      var availableCharacters = await GetAvailableCharactersAsync();
-
-      OnUserCharactersUpdated?.Invoke(userCharacters);
-
-      Debug.Log($"[CharacterRepository] Refreshed all data - User: {userCharacters.Length}, Available: {availableCharacters.Length}");
-    }
-    catch (Exception ex)
-    {
-      HandleError("RefreshAll", ex);
-    }
-  }
-
-  public override void SaveToLocal()
-  {
-    try
-    {
-      // ユーザーキャラクターをローカル保存
-      var userCharacters = GetCache<CharacterData[]>(USER_CHARACTERS_KEY);
-      if (userCharacters != null)
-      {
-        localStorage.Save(GetLocalKey(USER_CHARACTERS_KEY), userCharacters);
+        return false;
       }
 
-      // 入手可能キャラクターをローカル保存
-      var availableCharacters = GetCache<CharacterData[]>(AVAILABLE_CHARACTERS_KEY);
-      if (availableCharacters != null)
-      {
-        localStorage.Save(GetLocalKey(AVAILABLE_CHARACTERS_KEY), availableCharacters);
-      }
+      character.level += levels;
 
-      Debug.Log("[CharacterRepository] Data saved to local storage");
+      // ステータスを成長させる
+      character.stats.hp += levels * 10;
+      character.stats.attack += levels * 2;
+      character.stats.defense += levels * 2;
+      character.stats.speed += levels * 1;
+
+      await UpdateAsync(character);
+
+      Debug.Log($"[CharacterRepository] Character leveled up: {character.characterName} -> Lv.{character.level}");
+      return true;
     }
-    catch (Exception ex)
+
+    #region Mock Data Implementation
+
+    /// <summary>
+    /// MockDataからキャラクターを取得
+    /// </summary>
+    protected override async Task<CharacterData> GetMockDataByIdAsync(string id)
     {
-      HandleError("SaveToLocal", ex);
+      await Task.Delay(100); // ネットワーク遅延をシミュレート
+
+      var characters = GetMockCharacters();
+      return characters.FirstOrDefault(c => c.characterId == id);
     }
+
+    /// <summary>
+    /// MockDataから全キャラクターを取得
+    /// </summary>
+    protected override async Task<List<CharacterData>> GetAllMockDataAsync()
+    {
+      await Task.Delay(100);
+      return GetMockCharacters();
+    }
+
+    /// <summary>
+    /// Mockキャラクターデータを生成
+    /// </summary>
+    private List<CharacterData> GetMockCharacters()
+    {
+      return new List<CharacterData>
+            {
+                new CharacterData
+                {
+                    characterId = "char_001",
+                    characterName = "キャラ1",
+                    description = "キャラ1です。文法が得意。",
+                    portraitImagePath = "Character/ex_character1",
+                    fullBodyImagePath = "Character/ex_character1",
+                    avatarImagePath = "Character/ex_character1",
+                    iconImagePath = "Character/ex_character1",
+                    defaultAnimation = AnimationType.Idle,
+                    animationSpeed = 1.0f,
+                    enableRandomAnimation = true,
+                    rarity = Rarity.Rare,
+                    level = 1,
+                    stats = new CharacterStats
+                    {
+                        hp = 100,
+                        attack = 15,
+                        defense = 10,
+                        speed = 12
+                    },
+                    isUnlocked = true,
+                    isFavorite = true,
+                    unlockedDate = DateTime.Now.AddDays(-30)
+                },
+                new CharacterData
+                {
+                    characterId = "char_002",
+                    characterName = "キャラ2",
+                    description = "キャラ2です。リスニングが得意。",
+                    portraitImagePath = "Character/ex_character2",
+                    fullBodyImagePath = "Character/ex_character2",
+                    avatarImagePath = "Character/ex_character2",
+                    iconImagePath = "Character/ex_character2",
+                    defaultAnimation = AnimationType.Walk,
+                    animationSpeed = 1.2f,
+                    enableRandomAnimation = true,
+                    rarity = Rarity.Epic,
+                    level = 5,
+                    stats = new CharacterStats
+                    {
+                        hp = 120,
+                        attack = 20,
+                        defense = 15,
+                        speed = 18
+                    },
+                    isUnlocked = true,
+                    isFavorite = false,
+                    unlockedDate = DateTime.Now.AddDays(-20)
+                },
+                new CharacterData
+                {
+                    characterId = "char_003",
+                    characterName = "キャラ3",
+                    description = "キャラ3です。スピーキングが得意。",
+                    portraitImagePath = "Character/ex_character3",
+                    fullBodyImagePath = "Character/ex_character3",
+                    avatarImagePath = "Character/ex_character3",
+                    iconImagePath = "Character/ex_character3",
+                    defaultAnimation = AnimationType.Jump,
+                    animationSpeed = 0.8f,
+                    enableRandomAnimation = false,
+                    rarity = Rarity.Legendary,
+                    level = 10,
+                    stats = new CharacterStats
+                    {
+                        hp = 200,
+                        attack = 30,
+                        defense = 25,
+                        speed = 22
+                    },
+                    isUnlocked = false,
+                    isFavorite = false,
+                    unlockedDate = DateTime.MinValue
+                },
+                new CharacterData
+                {
+                    characterId = "char_004",
+                    characterName = "キャラ4",
+                    description = "キャラ4です。総合力が高い。",
+                    portraitImagePath = "Character/ex_character4",
+                    fullBodyImagePath = "Character/ex_character4",
+                    avatarImagePath = "Character/ex_character4",
+                    iconImagePath = "Character/ex_character4",
+                    defaultAnimation = AnimationType.Victory,
+                    animationSpeed = 1.5f,
+                    enableRandomAnimation = true,
+                    rarity = Rarity.Common,
+                    level = 1,
+                    stats = new CharacterStats
+                    {
+                        hp = 80,
+                        attack = 8,
+                        defense = 8,
+                        speed = 8
+                    },
+                    isUnlocked = true,
+                    isFavorite = false,
+                    unlockedDate = DateTime.Now.AddDays(-5)
+                }
+            };
+    }
+
+    #endregion
   }
-
-  public override void LoadFromLocal()
-  {
-    try
-    {
-      // ローカルからユーザーキャラクターを読み込み
-      var userCharacters = localStorage.Load<CharacterData[]>(GetLocalKey(USER_CHARACTERS_KEY));
-      if (userCharacters != null)
-      {
-        SetCache(USER_CHARACTERS_KEY, userCharacters, TimeSpan.FromHours(1));
-      }
-
-      // ローカルから入手可能キャラクターを読み込み
-      var availableCharacters = localStorage.Load<CharacterData[]>(GetLocalKey(AVAILABLE_CHARACTERS_KEY));
-      if (availableCharacters != null)
-      {
-        SetCache(AVAILABLE_CHARACTERS_KEY, availableCharacters, TimeSpan.FromHours(1));
-      }
-
-      Debug.Log("[CharacterRepository] Data loaded from local storage");
-    }
-    catch (Exception ex)
-    {
-      HandleError("LoadFromLocal", ex);
-    }
-  }
-
-  #endregion
 }
-
-#region Request/Response Models
-
-[System.Serializable]
-public class LevelUpRequest
-{
-  public int CharacterId;
-}
-
-[System.Serializable]
-public class LevelUpResponse
-{
-  public bool Success;
-  public string ErrorMessage;
-  public CharacterData UpdatedCharacter;
-}
-
-[System.Serializable]
-public class EquipItemRequest
-{
-  public int CharacterId;
-  public int ItemId;
-  public EquipmentSlot Slot;
-}
-
-[System.Serializable]
-public class EquipItemResponse
-{
-  public bool Success;
-  public string ErrorMessage;
-  public CharacterData UpdatedCharacter;
-}
-
-public enum EquipmentSlot
-{
-  Weapon,
-  Armor,
-  Accessory
-}
-
-#endregion

@@ -1,371 +1,260 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-/// <summary>
-/// API通信の中央管理クラス
-/// </summary>
-public class APIClient : MonoBehaviour
+namespace Scripts.Runtime.Core
 {
-  [Header("API Configuration")]
-  [SerializeField] private string baseURL = "https://api.yourgame.com";
-  [SerializeField] private int timeoutSeconds = 30;
-  [SerializeField] private int maxRetryAttempts = 3;
-
-  // 認証トークン
-  private string authToken;
-  private DateTime tokenExpiry;
-
-  // リクエスト制限
-  private Dictionary<string, DateTime> lastRequestTimes = new();
-  private float rateLimitInterval = 1f; // 1秒に1回まで
-
-  #region Public API Methods
-
   /// <summary>
-  /// GETリクエスト
+  /// API通信を管理するクライアントクラス
+  /// UnityWebRequestを使用したHTTP通信の抽象化
   /// </summary>
-  public async Task<T> GetAsync<T>(string endpoint) where T : class
+  public class APIClient : MonoBehaviour
   {
-    return await ExecuteRequestAsync<T>(endpoint, "GET", null);
-  }
-
-  /// <summary>
-  /// POSTリクエスト
-  /// </summary>
-  public async Task<T> PostAsync<T>(string endpoint, object data) where T : class
-  {
-    return await ExecuteRequestAsync<T>(endpoint, "POST", data);
-  }
-
-  /// <summary>
-  /// PUTリクエスト
-  /// </summary>
-  public async Task<T> PutAsync<T>(string endpoint, object data) where T : class
-  {
-    return await ExecuteRequestAsync<T>(endpoint, "PUT", data);
-  }
-
-  /// <summary>
-  /// DELETEリクエスト
-  /// </summary>
-  public async Task<T> DeleteAsync<T>(string endpoint) where T : class
-  {
-    return await ExecuteRequestAsync<T>(endpoint, "DELETE", null);
-  }
-
-  /// <summary>
-  /// 一括データ取得API
-  /// </summary>
-  public async Task<BulkDataResponse> GetBulkDataAsync(string[] dataTypes, long lastSyncTimestamp = 0)
-  {
-    var request = new BulkDataRequest
+    // シングルトンインスタンス
+    private static APIClient _instance;
+    public static APIClient Instance
     {
-      RequestedDataTypes = dataTypes,
-      LastSyncTimestamp = lastSyncTimestamp
-    };
-
-    return await PostAsync<BulkDataResponse>("/api/game/bulk-data", request);
-  }
-
-  /// <summary>
-  /// データ同期API
-  /// </summary>
-  public async Task<SyncResponse> SyncDataAsync(string[] watchedDataTypes, long lastSyncTimestamp)
-  {
-    var request = new SyncRequest
-    {
-      WatchedDataTypes = watchedDataTypes,
-      LastSyncTimestamp = lastSyncTimestamp
-    };
-
-    return await PostAsync<SyncResponse>("/api/game/sync", request);
-  }
-
-  #endregion
-
-  #region Core Request Execution
-
-  private async Task<T> ExecuteRequestAsync<T>(string endpoint, string method, object data) where T : class
-  {
-    // レート制限チェック
-    await ApplyRateLimit(endpoint);
-
-    // 認証トークンの確認・更新
-    await EnsureValidAuthToken();
-
-    // リトライ機能付きでリクエスト実行
-    return await ExecuteWithRetry<T>(endpoint, method, data);
-  }
-
-  private async Task<T> ExecuteWithRetry<T>(string endpoint, string method, object data) where T : class
-  {
-    Exception lastException = null;
-
-    for (int attempt = 1; attempt <= maxRetryAttempts; attempt++)
-    {
-      try
+      get
       {
-        return await SendRequestAsync<T>(endpoint, method, data);
-      }
-      catch (Exception ex)
-      {
-        lastException = ex;
-
-        if (attempt < maxRetryAttempts)
+        if (_instance == null)
         {
-          // 指数バックオフで待機
-          var delayMs = Mathf.Pow(2, attempt) * 1000;
-          Debug.LogWarning($"API request failed (attempt {attempt}/{maxRetryAttempts}): {ex.Message}. Retrying in {delayMs}ms...");
-          await Task.Delay((int)delayMs);
+          GameObject go = new GameObject("APIClient");
+          _instance = go.AddComponent<APIClient>();
+          DontDestroyOnLoad(go);
         }
+        return _instance;
       }
     }
 
-    Debug.LogError($"API request failed after {maxRetryAttempts} attempts: {lastException?.Message}");
-    throw lastException;
-  }
+    // API設定
+    [Header("API Configuration")]
+    [SerializeField] private string baseUrl = "https://api.example.com";
+    [SerializeField] private float timeoutSeconds = 30f;
+    [SerializeField] private int maxRetryCount = 3;
 
-  private async Task<T> SendRequestAsync<T>(string endpoint, string method, object data) where T : class
-  {
-    var url = baseURL + endpoint;
+    // 認証トークン
+    private string _authToken;
 
-    using (var request = new UnityWebRequest(url, method))
+    /// <summary>
+    /// 認証トークンを設定
+    /// </summary>
+    public void SetAuthToken(string token)
     {
-      // ヘッダー設定
-      SetRequestHeaders(request);
+      _authToken = token;
+      Debug.Log("[APIClient] Auth token set");
+    }
 
-      // ボディ設定（POST/PUTの場合）
-      if (data != null && (method == "POST" || method == "PUT"))
+    /// <summary>
+    /// GETリクエスト
+    /// </summary>
+    public async Task<T> GetAsync<T>(string endpoint) where T : class
+    {
+      string url = $"{baseUrl}{endpoint}";
+
+      for (int retry = 0; retry < maxRetryCount; retry++)
       {
-        var jsonData = JsonUtility.ToJson(data);
-        var bodyRaw = Encoding.UTF8.GetBytes(jsonData);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        using (UnityWebRequest request = UnityWebRequest.Get(url))
+        {
+          SetHeaders(request);
+          request.timeout = (int)timeoutSeconds;
+
+          try
+          {
+            await SendRequestAsync(request);
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+              return ParseResponse<T>(request.downloadHandler.text);
+            }
+
+            if (request.responseCode == 401) // Unauthorized
+            {
+              Debug.LogError("[APIClient] Authentication failed");
+              throw new UnauthorizedAccessException("Authentication failed");
+            }
+
+            if (retry < maxRetryCount - 1)
+            {
+              await Task.Delay(1000 * (retry + 1)); // 指数バックオフ
+              continue;
+            }
+
+            throw new Exception($"Request failed: {request.error}");
+          }
+          catch (Exception e)
+          {
+            Debug.LogError($"[APIClient] GET request failed: {e.Message}");
+            if (retry == maxRetryCount - 1) throw;
+          }
+        }
       }
 
-      // レスポンス受信設定
-      request.downloadHandler = new DownloadHandlerBuffer();
-      request.timeout = timeoutSeconds;
+      return null;
+    }
 
-      // リクエスト送信
+    /// <summary>
+    /// POSTリクエスト
+    /// </summary>
+    public async Task<T> PostAsync<T>(string endpoint, object data) where T : class
+    {
+      string url = $"{baseUrl}{endpoint}";
+      string jsonData = JsonUtility.ToJson(data);
+
+      for (int retry = 0; retry < maxRetryCount; retry++)
+      {
+        using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+        {
+          byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+          request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+          request.downloadHandler = new DownloadHandlerBuffer();
+
+          SetHeaders(request);
+          request.SetRequestHeader("Content-Type", "application/json");
+          request.timeout = (int)timeoutSeconds;
+
+          try
+          {
+            await SendRequestAsync(request);
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+              return ParseResponse<T>(request.downloadHandler.text);
+            }
+
+            if (retry < maxRetryCount - 1)
+            {
+              await Task.Delay(1000 * (retry + 1));
+              continue;
+            }
+
+            throw new Exception($"Request failed: {request.error}");
+          }
+          catch (Exception e)
+          {
+            Debug.LogError($"[APIClient] POST request failed: {e.Message}");
+            if (retry == maxRetryCount - 1) throw;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    /// <summary>
+    /// PUTリクエスト
+    /// </summary>
+    public async Task<T> PutAsync<T>(string endpoint, object data) where T : class
+    {
+      string url = $"{baseUrl}{endpoint}";
+      string jsonData = JsonUtility.ToJson(data);
+
+      using (UnityWebRequest request = UnityWebRequest.Put(url, jsonData))
+      {
+        request.downloadHandler = new DownloadHandlerBuffer();
+        SetHeaders(request);
+        request.SetRequestHeader("Content-Type", "application/json");
+        request.timeout = (int)timeoutSeconds;
+
+        await SendRequestAsync(request);
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+          return ParseResponse<T>(request.downloadHandler.text);
+        }
+
+        Debug.LogError($"[APIClient] PUT request failed: {request.error}");
+        return null;
+      }
+    }
+
+    /// <summary>
+    /// DELETEリクエスト
+    /// </summary>
+    public async Task<bool> DeleteAsync(string endpoint)
+    {
+      string url = $"{baseUrl}{endpoint}";
+
+      using (UnityWebRequest request = UnityWebRequest.Delete(url))
+      {
+        SetHeaders(request);
+        request.timeout = (int)timeoutSeconds;
+
+        await SendRequestAsync(request);
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+          return true;
+        }
+
+        Debug.LogError($"[APIClient] DELETE request failed: {request.error}");
+        return false;
+      }
+    }
+
+    /// <summary>
+    /// ヘッダーを設定
+    /// </summary>
+    private void SetHeaders(UnityWebRequest request)
+    {
+      if (!string.IsNullOrEmpty(_authToken))
+      {
+        request.SetRequestHeader("Authorization", $"Bearer {_authToken}");
+      }
+
+      request.SetRequestHeader("Accept", "application/json");
+    }
+
+    /// <summary>
+    /// リクエストを非同期で送信
+    /// </summary>
+    private async Task SendRequestAsync(UnityWebRequest request)
+    {
       var operation = request.SendWebRequest();
 
-      // 完了待機
       while (!operation.isDone)
       {
         await Task.Yield();
       }
+    }
 
-      // エラーチェック
-      if (request.result != UnityWebRequest.Result.Success)
+    /// <summary>
+    /// レスポンスをパース
+    /// </summary>
+    private T ParseResponse<T>(string json) where T : class
+    {
+      try
       {
-        HandleRequestError(request);
+        return JsonUtility.FromJson<T>(json);
       }
-
-      // レスポンス解析
-      var responseJson = request.downloadHandler.text;
-      Debug.Log($"API Response [{method} {endpoint}]: {responseJson}");
-
-      // JSON デシリアライズ
-      if (typeof(T) == typeof(string))
+      catch (Exception e)
       {
-        return responseJson as T;
-      }
-      else
-      {
-        return JsonUtility.FromJson<T>(responseJson);
-      }
-    }
-  }
-
-  #endregion
-
-  #region Authentication
-
-  private async Task EnsureValidAuthToken()
-  {
-    if (string.IsNullOrEmpty(authToken) || DateTime.Now >= tokenExpiry)
-    {
-      await RefreshAuthToken();
-    }
-  }
-
-  private async Task RefreshAuthToken()
-  {
-    try
-    {
-      // 保存された認証情報でトークンリフレッシュ
-      var refreshRequest = new AuthRefreshRequest
-      {
-        UserId = GameData.CurrentUserId,
-        DeviceId = SystemInfo.deviceUniqueIdentifier
-      };
-
-      var authResponse = await SendRequestAsync<AuthResponse>("/api/auth/refresh", "POST", refreshRequest);
-
-      authToken = authResponse.AccessToken;
-      tokenExpiry = DateTime.Now.AddSeconds(authResponse.ExpiresIn - 300); // 5分前に期限切れとして扱う
-
-      Debug.Log("Auth token refreshed successfully");
-    }
-    catch (Exception ex)
-    {
-      Debug.LogError($"Failed to refresh auth token: {ex.Message}");
-
-      // トークンリフレッシュに失敗した場合は再ログインが必要
-      EventBus.Trigger("AuthenticationFailed");
-      throw new UnauthorizedAccessException("Authentication failed");
-    }
-  }
-
-  #endregion
-
-  #region Request Configuration
-
-  private void SetRequestHeaders(UnityWebRequest request)
-  {
-    request.SetRequestHeader("Content-Type", "application/json");
-    request.SetRequestHeader("Accept", "application/json");
-    request.SetRequestHeader("User-Agent", $"UnityGameClient/{Application.version}");
-
-    if (!string.IsNullOrEmpty(authToken))
-    {
-      request.SetRequestHeader("Authorization", $"Bearer {authToken}");
-    }
-
-    // デバイス情報
-    request.SetRequestHeader("X-Device-ID", SystemInfo.deviceUniqueIdentifier);
-    request.SetRequestHeader("X-Platform", Application.platform.ToString());
-    request.SetRequestHeader("X-App-Version", Application.version);
-  }
-
-  private async Task ApplyRateLimit(string endpoint)
-  {
-    if (lastRequestTimes.TryGetValue(endpoint, out var lastRequestTime))
-    {
-      var timeSinceLastRequest = (float)(DateTime.Now - lastRequestTime).TotalSeconds;
-      if (timeSinceLastRequest < rateLimitInterval)
-      {
-        var waitTime = (rateLimitInterval - timeSinceLastRequest) * 1000;
-        await Task.Delay((int)waitTime);
+        Debug.LogError($"[APIClient] Failed to parse response: {e.Message}");
+        Debug.LogError($"[APIClient] Response JSON: {json}");
+        return null;
       }
     }
 
-    lastRequestTimes[endpoint] = DateTime.Now;
-  }
-
-  private void HandleRequestError(UnityWebRequest request)
-  {
-    var errorMessage = $"API Error [{request.method} {request.url}]: {request.error}";
-
-    switch (request.responseCode)
+    /// <summary>
+    /// APIのヘルスチェック
+    /// </summary>
+    public async Task<bool> HealthCheckAsync()
     {
-      case 400:
-        throw new ArgumentException($"Bad Request: {request.downloadHandler.text}");
-      case 401:
-        throw new UnauthorizedAccessException("Unauthorized access");
-      case 403:
-        throw new UnauthorizedAccessException("Forbidden");
-      case 404:
-        throw new InvalidOperationException("Resource not found");
-      case 429:
-        throw new InvalidOperationException("Rate limit exceeded");
-      case 500:
-        throw new InvalidOperationException("Internal server error");
-      default:
-        throw new Exception($"{errorMessage} (Code: {request.responseCode})");
+      try
+      {
+        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/health"))
+        {
+          request.timeout = 5;
+          await SendRequestAsync(request);
+          return request.result == UnityWebRequest.Result.Success;
+        }
+      }
+      catch
+      {
+        return false;
+      }
     }
   }
-
-  #endregion
-
-  #region Utility Methods
-
-  /// <summary>
-  /// ネットワーク接続状態の確認
-  /// </summary>
-  public bool IsOnline()
-  {
-    return Application.internetReachability != NetworkReachability.NotReachable;
-  }
-
-  /// <summary>
-  /// APIベースURLの設定
-  /// </summary>
-  public void SetBaseURL(string newBaseURL)
-  {
-    baseURL = newBaseURL;
-    Debug.Log($"API base URL updated to: {baseURL}");
-  }
-
-  /// <summary>
-  /// 認証トークンの手動設定
-  /// </summary>
-  public void SetAuthToken(string token, int expiresInSeconds)
-  {
-    authToken = token;
-    tokenExpiry = DateTime.Now.AddSeconds(expiresInSeconds - 300);
-    Debug.Log("Auth token set manually");
-  }
-
-  #endregion
 }
-
-#region Request/Response Models
-
-[System.Serializable]
-public class BulkDataRequest
-{
-  public string[] RequestedDataTypes;
-  public long LastSyncTimestamp;
-}
-
-[System.Serializable]
-public class BulkDataResponse
-{
-  public UserProfile UserProfile;
-  public CharacterData[] Characters;
-  public ShopItem[] ShopItems;
-  public QuestData[] Quests;
-  public InventoryItem[] InventoryItems;
-  public long ServerTimestamp;
-}
-
-[System.Serializable]
-public class SyncRequest
-{
-  public string[] WatchedDataTypes;
-  public long LastSyncTimestamp;
-}
-
-[System.Serializable]
-public class SyncResponse
-{
-  public UserProfile UpdatedUserProfile;
-  public CharacterData[] UpdatedCharacters;
-  public ShopItem[] UpdatedShopItems;
-  public QuestData[] UpdatedQuests;
-  public string[] DeletedDataIds;
-  public long ServerTimestamp;
-}
-
-[System.Serializable]
-public class AuthRefreshRequest
-{
-  public string UserId;
-  public string DeviceId;
-}
-
-[System.Serializable]
-public class AuthResponse
-{
-  public string AccessToken;
-  public int ExpiresIn;
-  public string TokenType;
-}
-
-#endregion
