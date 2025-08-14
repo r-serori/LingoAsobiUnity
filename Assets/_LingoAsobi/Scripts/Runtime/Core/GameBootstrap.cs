@@ -62,6 +62,16 @@ namespace Scripts.Runtime.Core
       StartInitialization();
     }
 
+    private async void Start()
+    {
+        // GameEventManagerの初期化を確実に行う
+        var eventManager = GameEventManager.Instance;
+        Debug.Log("[GameBootstrap] Ensuring GameEventManager is initialized");
+        
+        // 既存の初期化処理
+        await StartInitialization();
+    }
+
     private void OnApplicationPause(bool pauseStatus)
     {
       if (pauseStatus)
@@ -399,37 +409,23 @@ namespace Scripts.Runtime.Core
     /// 初期シーンへ遷移
     /// </summary>
    private async Task TransitionToInitialScene()
-    {
-      Debug.Log($"[GameBootstrap] Transitioning to {initialSceneName}...");
-
-      // EventBusとSceneHelperを確実に事前初期化
-      Debug.Log("[GameBootstrap] Initializing EventBus...");
-      _ = EventBus.Instance;
+   {
+      string targetScene = initialSceneName;
       
-      Debug.Log("[GameBootstrap] Initializing SceneHelper...");
-      var sceneHelper = SceneHelper.Instance;
-      
-      // SceneHelperの初期化完了を待つ
-      while (!sceneHelper.IsInitialized)
+      if (SceneHelper.SceneExists(targetScene))
       {
-        Debug.Log("[GameBootstrap] Waiting for SceneHelper initialization...");
-        await Task.Delay(10);
+          bool success = await SceneHelper.LoadSceneAsync(targetScene, false);
+          if (!success)
+          {
+              Debug.LogError($"[GameBootstrap] Failed to load initial scene: {targetScene}");
+              // フォールバックシーンへの遷移など
+          }
       }
-      Debug.Log("[GameBootstrap] SceneHelper initialization complete");
-
-      // 常にTitleSceneに遷移（認証状態に関係なく）
-      string targetScene = GameConstants.Scenes.Title;
-
-      // 現在のシーンと同じ場合は遷移しない
-      if (SceneManager.GetActiveScene().name == targetScene)
+      else
       {
-        Debug.LogWarning($"[GameBootstrap] Transition aborted. Already in scene: {targetScene}");
-        return;
+          Debug.LogError($"[GameBootstrap] Scene does not exist: {targetScene}");
       }
-
-      // シーン遷移
-      await SceneHelper.Instance.LoadSceneAsync(targetScene);
-    }
+   }
 
     #endregion
 

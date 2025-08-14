@@ -4,263 +4,138 @@ using UnityEngine;
 
 namespace Scripts.Runtime.Core
 {
-  /// <summary>
-  /// イベントバスシステム
-  /// 疎結合なコンポーネント間通信を実現
-  /// </summary>
-  public class EventBus
-  {
-    // シングルトンインスタンス
-    private static EventBus _instance;
-    public static EventBus Instance
+    /// <summary>
+    /// 改善版EventBus - より安全で管理しやすい実装
+    /// </summary>
+    public static class EventBus
     {
-      get
-      {
-        if (_instance == null)
+        private static readonly Dictionary<Type, List<Delegate>> eventHandlers = new();
+        private static readonly object lockObject = new object();
+        
+        // デバッグ用: 登録されているハンドラーの数を取得
+        public static int GetHandlerCount<T>() where T : IEvent
         {
-          _instance = new EventBus();
+            lock (lockObject)
+            {
+                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
+                    ? handlers.Count : 0;
+            }
         }
-        return _instance;
-      }
-    }
-
-    // イベントハンドラーのディクショナリ
-    private readonly Dictionary<Type, List<Delegate>> _eventHandlers;
-
-    // イベント履歴（デバッグ用）
-    private readonly Queue<EventInfo> _eventHistory;
-    private const int MaxHistorySize = 50;
-
-    /// <summary>
-    /// プライベートコンストラクタ
-    /// </summary>
-    private EventBus()
-    {
-      _eventHandlers = new Dictionary<Type, List<Delegate>>();
-      _eventHistory = new Queue<EventInfo>();
-    }
-
-    /// <summary>
-    /// イベントハンドラーを登録
-    /// </summary>
-    /// <typeparam name="T">イベントの型</typeparam>
-    /// <param name="handler">ハンドラー</param>
-    public void Subscribe<T>(Action<T> handler) where T : IGameEvent
-    {
-      Type eventType = typeof(T);
-
-      if (!_eventHandlers.ContainsKey(eventType))
-      {
-        _eventHandlers[eventType] = new List<Delegate>();
-      }
-
-      _eventHandlers[eventType].Add(handler);
-      Debug.Log($"[EventBus] Subscribed to {eventType.Name}");
-    }
-
-    /// <summary>
-    /// イベントハンドラーを解除
-    /// </summary>
-    /// <typeparam name="T">イベントの型</typeparam>
-    /// <param name="handler">ハンドラー</param>
-    public void Unsubscribe<T>(Action<T> handler) where T : IGameEvent
-    {
-      Type eventType = typeof(T);
-
-      if (_eventHandlers.ContainsKey(eventType))
-      {
-        _eventHandlers[eventType].Remove(handler);
-
-        if (_eventHandlers[eventType].Count == 0)
+        
+        /// <summary>
+        /// ハンドラーが存在するか確認
+        /// </summary>
+        public static bool HasHandlers<T>() where T : IEvent
         {
-          _eventHandlers.Remove(eventType);
+            lock (lockObject)
+            {
+                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
+                    && handlers.Count > 0;
+            }
         }
-
-        Debug.Log($"[EventBus] Unsubscribed from {eventType.Name}");
-      }
-    }
-
-    /// <summary>
-    /// イベントを発行
-    /// </summary>
-    /// <typeparam name="T">イベントの型</typeparam>
-    /// <param name="gameEvent">イベントデータ</param>
-    public void Publish<T>(T gameEvent) where T : IGameEvent
-    {
-      Type eventType = typeof(T);
-
-      // イベント履歴に追加
-      AddToHistory(eventType, gameEvent);
-
-      if (_eventHandlers.ContainsKey(eventType))
-      {
-        var handlers = new List<Delegate>(_eventHandlers[eventType]);
-
-        foreach (var handler in handlers)
+        
+        /// <summary>
+        /// イベントの購読
+        /// </summary>
+        public static void Subscribe<T>(Action<T> handler) where T : IEvent
         {
-          try
-          {
-            (handler as Action<T>)?.Invoke(gameEvent);
-          }
-          catch (Exception e)
-          {
-            Debug.LogError($"[EventBus] Error handling event {eventType.Name}: {e.Message}");
-          }
+            if (handler == null) return;
+            
+            lock (lockObject)
+            {
+                var type = typeof(T);
+                if (!eventHandlers.ContainsKey(type))
+                {
+                    eventHandlers[type] = new List<Delegate>();
+                }
+                
+                // 重複登録を防ぐ
+                if (!eventHandlers[type].Contains(handler))
+                {
+                    eventHandlers[type].Add(handler);
+                    Debug.Log($"[EventBus] Subscribed to {type.Name}. Total handlers: {eventHandlers[type].Count}");
+                }
+            }
         }
-
-        Debug.Log($"[EventBus] Published {eventType.Name} to {handlers.Count} handlers");
-      }
-      else
-      {
-        Debug.LogWarning($"[EventBus] No handlers for event {eventType.Name}");
-      }
+        
+        /// <summary>
+        /// イベントの購読解除
+        /// </summary>
+        public static void Unsubscribe<T>(Action<T> handler) where T : IEvent
+        {
+            if (handler == null) return;
+            
+            lock (lockObject)
+            {
+                var type = typeof(T);
+                if (eventHandlers.TryGetValue(type, out var handlers))
+                {
+                    handlers.Remove(handler);
+                    Debug.Log($"[EventBus] Unsubscribed from {type.Name}. Remaining handlers: {handlers.Count}");
+                    
+                    // ハンドラーが0になったらリストを削除
+                    if (handlers.Count == 0)
+                    {
+                        eventHandlers.Remove(type);
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// イベントの発行
+        /// </summary>
+        public static void Publish<T>(T eventData) where T : IEvent
+        {
+            List<Delegate> handlersToInvoke = null;
+            
+            lock (lockObject)
+            {
+                var type = typeof(T);
+                if (eventHandlers.TryGetValue(type, out var handlers))
+                {
+                    // ハンドラーリストのコピーを作成（イテレーション中の変更を防ぐ）
+                    handlersToInvoke = new List<Delegate>(handlers);
+                }
+            }
+            
+            if (handlersToInvoke != null && handlersToInvoke.Count > 0)
+            {
+                Debug.Log($"[EventBus] Publishing {typeof(T).Name} to {handlersToInvoke.Count} handlers");
+                
+                foreach (var handler in handlersToInvoke)
+                {
+                    try
+                    {
+                        (handler as Action<T>)?.Invoke(eventData);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[EventBus] Error handling event {typeof(T).Name}: {e.Message}");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[EventBus] No handlers for event {typeof(T).Name}");
+            }
+        }
+        
+        /// <summary>
+        /// 全てのハンドラーをクリア（デバッグ/テスト用）
+        /// </summary>
+        public static void ClearAll()
+        {
+            lock (lockObject)
+            {
+                eventHandlers.Clear();
+                Debug.Log("[EventBus] All handlers cleared");
+            }
+        }
     }
-
+    
     /// <summary>
-    /// すべてのイベントハンドラーをクリア
+    /// イベントのベースインターフェース
     /// </summary>
-    public void ClearAll()
-    {
-      _eventHandlers.Clear();
-      _eventHistory.Clear();
-      Debug.Log("[EventBus] All event handlers cleared");
-    }
-
-    /// <summary>
-    /// 特定のイベントタイプのハンドラーをクリア
-    /// </summary>
-    public void Clear<T>() where T : IGameEvent
-    {
-      Type eventType = typeof(T);
-
-      if (_eventHandlers.ContainsKey(eventType))
-      {
-        _eventHandlers.Remove(eventType);
-        Debug.Log($"[EventBus] Cleared handlers for {eventType.Name}");
-      }
-    }
-
-    /// <summary>
-    /// イベント履歴に追加
-    /// </summary>
-    private void AddToHistory(Type eventType, IGameEvent gameEvent)
-    {
-      if (_eventHistory.Count >= MaxHistorySize)
-      {
-        _eventHistory.Dequeue();
-      }
-
-      _eventHistory.Enqueue(new EventInfo
-      {
-        EventType = eventType,
-        Event = gameEvent,
-        Timestamp = DateTime.Now
-      });
-    }
-
-    /// <summary>
-    /// イベント履歴を取得
-    /// </summary>
-    public EventInfo[] GetEventHistory()
-    {
-      return _eventHistory.ToArray();
-    }
-
-    /// <summary>
-    /// デバッグ情報を出力
-    /// </summary>
-    public void PrintDebugInfo()
-    {
-      Debug.Log("=== EventBus Debug Info ===");
-      Debug.Log($"Total event types: {_eventHandlers.Count}");
-
-      foreach (var kvp in _eventHandlers)
-      {
-        Debug.Log($"  {kvp.Key.Name}: {kvp.Value.Count} handlers");
-      }
-
-      Debug.Log($"Event history: {_eventHistory.Count} events");
-    }
-  }
-
-  /// <summary>
-  /// ゲームイベントの基底インターフェース
-  /// </summary>
-  public interface IGameEvent
-  {
-  }
-
-  /// <summary>
-  /// イベント情報（履歴用）
-  /// </summary>
-  public struct EventInfo
-  {
-    public Type EventType;
-    public IGameEvent Event;
-    public DateTime Timestamp;
-  }
-
-  #region Common Game Events
-
-  /// <summary>
-  /// レベルアップイベント
-  /// </summary>
-  public class LevelUpEvent : IGameEvent
-  {
-    public string UserId { get; set; }
-    public int OldLevel { get; set; }
-    public int NewLevel { get; set; }
-  }
-
-  /// <summary>
-  /// スタミナ変更イベント
-  /// </summary>
-  public class StaminaChangedEvent : IGameEvent
-  {
-    public int OldStamina { get; set; }
-    public int NewStamina { get; set; }
-  }
-
-  /// <summary>
-  /// 通貨変更イベント
-  /// </summary>
-  public class CurrencyChangedEvent : IGameEvent
-  {
-    public enum CurrencyType { Gold, Gem }
-
-    public CurrencyType Type { get; set; }
-    public int OldAmount { get; set; }
-    public int NewAmount { get; set; }
-  }
-
-  /// <summary>
-  /// アイテム取得イベント
-  /// </summary>
-  public class ItemObtainedEvent : IGameEvent
-  {
-    public string ItemId { get; set; }
-    public int Quantity { get; set; }
-  }
-
-  /// <summary>
-  /// クエスト完了イベント
-  /// </summary>
-  public class QuestCompletedEvent : IGameEvent
-  {
-    public string QuestId { get; set; }
-    public List<string> RewardItemIds { get; set; }
-    public int ExpReward { get; set; }
-    public int GoldReward { get; set; }
-  }
-
-  /// <summary>
-  /// シーン遷移イベント
-  /// </summary>
-  public class SceneTransitionEvent : IGameEvent
-  {
-    public string FromScene { get; set; }
-    public string ToScene { get; set; }
-  }
-
-  #endregion
+    public interface IEvent { }
 }
