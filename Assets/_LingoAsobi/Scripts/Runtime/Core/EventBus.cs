@@ -5,27 +5,62 @@ using UnityEngine;
 namespace Scripts.Runtime.Core
 {
     /// <summary>
-    /// 改善版EventBus - より安全で管理しやすい実装
+    /// 改善版EventBus - シングルトンパターンを維持しつつ改善
     /// </summary>
-    public static class EventBus
+    public class EventBus : MonoBehaviour
     {
-        private static readonly Dictionary<Type, List<Delegate>> eventHandlers = new();
-        private static readonly object lockObject = new object();
+        private static EventBus instance;
+        private readonly Dictionary<Type, List<Delegate>> eventHandlers = new();
+        private readonly object lockObject = new object();
         
-        // デバッグ用: 登録されているハンドラーの数を取得
-        public static int GetHandlerCount<T>() where T : IEvent
+        /// <summary>
+        /// シングルトンインスタンス（既存コードとの互換性のため維持）
+        /// </summary>
+        public static EventBus Instance
         {
-            lock (lockObject)
+            get
             {
-                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
-                    ? handlers.Count : 0;
+                if (instance == null)
+                {
+                    CreateInstance();
+                }
+                return instance;
             }
+        }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Initialize()
+        {
+            CreateInstance();
+        }
+        
+        private static void CreateInstance()
+        {
+            if (instance != null) return;
+            
+            GameObject go = new GameObject("[EventBus]");
+            instance = go.AddComponent<EventBus>();
+            DontDestroyOnLoad(go);
+            
+            Debug.Log("[EventBus] Instance created and set to DontDestroyOnLoad");
+        }
+        
+        private void Awake()
+        {
+            if (instance != null && instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            
+            instance = this;
+            Debug.Log("[EventBus] Initialized");
         }
         
         /// <summary>
         /// ハンドラーが存在するか確認
         /// </summary>
-        public static bool HasHandlers<T>() where T : IEvent
+        public bool HasHandlers<T>() where T : IEvent
         {
             lock (lockObject)
             {
@@ -35,9 +70,21 @@ namespace Scripts.Runtime.Core
         }
         
         /// <summary>
-        /// イベントの購読
+        /// デバッグ用: 登録されているハンドラーの数を取得
         /// </summary>
-        public static void Subscribe<T>(Action<T> handler) where T : IEvent
+        public int GetHandlerCount<T>() where T : IEvent
+        {
+            lock (lockObject)
+            {
+                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
+                    ? handlers.Count : 0;
+            }
+        }
+        
+        /// <summary>
+        /// イベントの購読（インスタンスメソッド版）
+        /// </summary>
+        public void Subscribe<T>(Action<T> handler) where T : IEvent
         {
             if (handler == null) return;
             
@@ -59,9 +106,9 @@ namespace Scripts.Runtime.Core
         }
         
         /// <summary>
-        /// イベントの購読解除
+        /// イベントの購読解除（インスタンスメソッド版）
         /// </summary>
-        public static void Unsubscribe<T>(Action<T> handler) where T : IEvent
+        public void Unsubscribe<T>(Action<T> handler) where T : IEvent
         {
             if (handler == null) return;
             
@@ -83,9 +130,9 @@ namespace Scripts.Runtime.Core
         }
         
         /// <summary>
-        /// イベントの発行
+        /// イベントの発行（インスタンスメソッド版）
         /// </summary>
-        public static void Publish<T>(T eventData) where T : IEvent
+        public void Publish<T>(T eventData) where T : IEvent
         {
             List<Delegate> handlersToInvoke = null;
             
@@ -111,7 +158,7 @@ namespace Scripts.Runtime.Core
                     }
                     catch (Exception e)
                     {
-                        Debug.LogError($"[EventBus] Error handling event {typeof(T).Name}: {e.Message}");
+                        Debug.LogError($"[EventBus] Error handling event {typeof(T).Name}: {e.Message}\n{e.StackTrace}");
                     }
                 }
             }
@@ -124,13 +171,50 @@ namespace Scripts.Runtime.Core
         /// <summary>
         /// 全てのハンドラーをクリア（デバッグ/テスト用）
         /// </summary>
-        public static void ClearAll()
+        public void ClearAll()
         {
             lock (lockObject)
             {
                 eventHandlers.Clear();
                 Debug.Log("[EventBus] All handlers cleared");
             }
+        }
+        
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
+            }
+        }
+        
+        // ===== 静的メソッド版（既存コードとの互換性のため） =====
+        
+        /// <summary>
+        /// 静的メソッド版のSubscribe（既存コードとの互換性）
+        /// </summary>
+        public static void StaticSubscribe<T>(Action<T> handler) where T : IEvent
+        {
+            Instance.Subscribe(handler);
+        }
+        
+        /// <summary>
+        /// 静的メソッド版のUnsubscribe（既存コードとの互換性）
+        /// </summary>
+        public static void StaticUnsubscribe<T>(Action<T> handler) where T : IEvent
+        {
+            if (instance != null)
+            {
+                instance.Unsubscribe(handler);
+            }
+        }
+        
+        /// <summary>
+        /// 静的メソッド版のPublish（既存コードとの互換性）
+        /// </summary>
+        public static void StaticPublish<T>(T eventData) where T : IEvent
+        {
+            Instance.Publish(eventData);
         }
     }
     

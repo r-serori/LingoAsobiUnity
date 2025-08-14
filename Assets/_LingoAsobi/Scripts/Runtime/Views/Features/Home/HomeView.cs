@@ -9,6 +9,8 @@ using Scripts.Runtime.Data.Models.User;
 using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Utilities.Helpers;
+using Scripts.Runtime.Core;
+using Scripts.Runtime.Utilities.Constants;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -314,10 +316,10 @@ namespace Scripts.Runtime.Views.Features.Home
       Debug.Log($"[HomeView] Currency clicked: {currencyType}");
       // ショップ画面へ遷移
       EventBus.Instance.Publish(new SceneTransitionEvent
-      {
-        FromScene = "Home",
-        ToScene = "Shop"
-      });
+      (
+        GameConstants.Scenes.Shop,
+        SceneTransitionEvent.TransitionPhase.Started
+      ));
     }
 
     #endregion

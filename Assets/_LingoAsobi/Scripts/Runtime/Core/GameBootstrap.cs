@@ -63,10 +63,9 @@ namespace Scripts.Runtime.Core
     }
 
     private async void Start()
-    {
-        // GameEventManagerの初期化を確実に行う
-        var eventManager = GameEventManager.Instance;
-        Debug.Log("[GameBootstrap] Ensuring GameEventManager is initialized");
+        {
+        // 全ての必須マネージャーを初期化
+        InitializeManagers();
         
         // 既存の初期化処理
         await StartInitialization();
@@ -106,7 +105,7 @@ namespace Scripts.Runtime.Core
     /// <summary>
     /// 初期化を開始
     /// </summary>
-    private async void StartInitialization()
+    private async Task StartInitialization()
     {
       if (isInitializing || isInitialized)
       {
@@ -207,49 +206,28 @@ namespace Scripts.Runtime.Core
     /// マネージャーの初期化
     /// </summary>
     private void InitializeManagers()
-    {
-      Debug.Log("[GameBootstrap] Initializing managers...");
-
-      // DataManagerの初期化
-      if (DataManager.Instance == null)
-      {
-        Debug.LogError("[GameBootstrap] DataManager.Instance is null after initialization");
-      }
-      else
-      {
-        Debug.Log("[GameBootstrap] DataManager initialized successfully");
-      }
-
-      // APIClientの初期化
-      if (APIClient.Instance == null)
-      {
-        Debug.LogError("[GameBootstrap] APIClient.Instance is null after initialization");
-      }
-      else
-      {
-        Debug.Log("[GameBootstrap] APIClient initialized successfully");
-      }
-
-      Debug.Log("[GameBootstrap] Managers initialization complete");
-
-      // // DataManagerの初期化
-      // if (DataManager.Instance == null)
-      // {
-      //   GameObject dataManagerObj = new GameObject("DataManager");
-      //   dataManagerObj.AddComponent<DataManager>();
-      //   dataManagerObj.transform.SetParent(transform);
-      // }
-
-      // // APIClientの初期化
-      // if (APIClient.Instance == null)
-      // {
-      //   GameObject apiClientObj = new GameObject("APIClient");
-      //   apiClientObj.AddComponent<APIClient>();
-      //   apiClientObj.transform.SetParent(transform);
-      // }
-
-      // Debug.Log("[GameBootstrap] Managers initialized");
-    }
+        {
+            // コアマネージャーの初期化と確認
+            var eventBus = EventBus.Instance;
+            var eventRegistry = GameEventHandlerRegistry.Instance;
+            var sceneHelper = SceneHelper.Instance;
+            
+            Debug.Log("[GameBootstrap] ===== Manager Initialization Status =====");
+            Debug.Log($"[GameBootstrap] EventBus: {eventBus != null}");
+            Debug.Log($"[GameBootstrap] EventHandlerRegistry: {eventRegistry != null}");
+            Debug.Log($"[GameBootstrap] SceneHelper: {sceneHelper != null}");
+            
+            // デバッグモードの場合、デバッガーを追加
+            #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (GameObject.Find("[EventBusDebugger]") == null)
+            {
+                GameObject debuggerGo = new GameObject("[EventBusDebugger]");
+                debuggerGo.AddComponent<EventBusDebugger>();
+                DontDestroyOnLoad(debuggerGo);
+                Debug.Log("[GameBootstrap] EventBusDebugger added for development");
+            }
+            #endif
+        }
 
     /// <summary>
     /// ヘルパーの初期化
@@ -405,27 +383,36 @@ namespace Scripts.Runtime.Core
       await UIHelper.FadeOutAsync(splashScreenCanvasGroup, 0.5f); // 0.5秒かけてフェードアウト
     }
 
-    /// <summary>
-    /// 初期シーンへ遷移
-    /// </summary>
-   private async Task TransitionToInitialScene()
-   {
-      string targetScene = initialSceneName;
-      
-      if (SceneHelper.SceneExists(targetScene))
-      {
-          bool success = await SceneHelper.LoadSceneAsync(targetScene, false);
-          if (!success)
-          {
-              Debug.LogError($"[GameBootstrap] Failed to load initial scene: {targetScene}");
-              // フォールバックシーンへの遷移など
-          }
-      }
-      else
-      {
-          Debug.LogError($"[GameBootstrap] Scene does not exist: {targetScene}");
-      }
-   }
+    private async Task TransitionToInitialScene()
+    {
+        string targetScene = initialSceneName;
+        
+        // SceneHelper.Instanceを使用（既存コードとの互換性）
+        if (SceneHelper.Instance.SceneExists(targetScene))
+        {
+            bool success = await SceneHelper.Instance.LoadSceneAsync(targetScene, false);
+            if (!success)
+            {
+                Debug.LogError($"[GameBootstrap] Failed to load initial scene: {targetScene}");
+                // フォールバックシーンへの遷移
+                await HandleSceneLoadFailure(targetScene);
+            }
+        }
+        else
+        {
+            Debug.LogError($"[GameBootstrap] Scene does not exist in build settings: {targetScene}");
+        }
+    }
+
+    private async Task HandleSceneLoadFailure(string failedScene)
+    {
+        // エラー画面への遷移など
+        string errorScene = "ErrorScene";
+        if (SceneHelper.Instance.SceneExists(errorScene))
+        {
+            await SceneHelper.Instance.LoadSceneAsync(errorScene, false);
+        }
+    }
 
     #endregion
 

@@ -177,7 +177,7 @@ namespace Scripts.Runtime.Views.Features.Home
 
     private void OnCurrencyChanged(CurrencyChangedEvent e)
     {
-      Debug.Log($"[HomeScene] {e.Type} changed: {e.OldAmount} -> {e.NewAmount}");
+      Debug.Log($"[HomeScene] {e.CurrencyType} changed: {e.OldAmount} -> {e.NewAmount}");
 
       // 通貨表示を更新
       if (homeView != null)

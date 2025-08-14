@@ -5,6 +5,7 @@ namespace Scripts.Runtime.Core
 {
     /// <summary>
     /// ゲーム全体のイベントを管理する永続的なマネージャー
+    /// SceneTransitionEventの処理を保証
     /// </summary>
     public class GameEventManager : MonoBehaviour
     {
@@ -57,11 +58,15 @@ namespace Scripts.Runtime.Core
         /// </summary>
         private void InitializeEventHandlers()
         {
+            // EventBusのインスタンスを確実に初期化
+            var eventBus = EventBus.Instance;
+            
             // SceneTransitionEventのハンドラーを登録
-            EventBus.Subscribe<SceneTransitionEvent>(OnSceneTransition);
-            cleanupActions.Add(() => EventBus.Unsubscribe<SceneTransitionEvent>(OnSceneTransition));
+            eventBus.Subscribe<SceneTransitionEvent>(OnSceneTransition);
+            cleanupActions.Add(() => eventBus.Unsubscribe<SceneTransitionEvent>(OnSceneTransition));
             
             Debug.Log("[GameEventManager] Event handlers initialized");
+            Debug.Log($"[GameEventManager] SceneTransitionEvent handlers: {eventBus.GetHandlerCount<SceneTransitionEvent>()}");
         }
         
         private void OnSceneTransition(SceneTransitionEvent evt)
@@ -88,25 +93,37 @@ namespace Scripts.Runtime.Core
         private void HandleSceneTransitionStart(SceneTransitionEvent evt)
         {
             // フェードアウト、UIの非表示など
-            Debug.Log($"Starting transition to: {evt.SceneName}");
+            Debug.Log($"[GameEventManager] Starting transition to: {evt.SceneName}");
+            
+            // 他のサブシステムへ通知（例：UIManager、AudioManager等）
+            // UIManager.Instance?.StartSceneTransition();
+            // AudioManager.Instance?.FadeOutBGM();
         }
         
         private void HandleSceneLoading(SceneTransitionEvent evt)
         {
             // ローディング画面の更新
-            Debug.Log($"Loading progress: {evt.Progress:P}");
+            Debug.Log($"[GameEventManager] Loading progress: {evt.Progress:P}");
+            
+            // LoadingUI.Instance?.UpdateProgress(evt.Progress);
         }
         
         private void HandleSceneTransitionComplete(SceneTransitionEvent evt)
         {
             // フェードイン、新しいシーンのUI表示など
-            Debug.Log($"Transition completed: {evt.SceneName}");
+            Debug.Log($"[GameEventManager] Transition completed: {evt.SceneName}");
+            
+            // UIManager.Instance?.EndSceneTransition();
+            // AudioManager.Instance?.FadeInBGM();
         }
         
         private void HandleSceneTransitionFailed(SceneTransitionEvent evt)
         {
             // エラー処理
-            Debug.LogError($"Failed to load scene: {evt.SceneName}");
+            Debug.LogError($"[GameEventManager] Failed to load scene: {evt.SceneName}");
+            
+            // エラーダイアログの表示など
+            // UIManager.Instance?.ShowErrorDialog($"Failed to load scene: {evt.SceneName}");
         }
         
         private void OnDestroy()
