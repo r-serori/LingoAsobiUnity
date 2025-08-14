@@ -11,6 +11,7 @@ namespace Scripts.Runtime.DataModels
   {
     #region Singleton Pattern
 
+
     private static GameBalanceManager _instance;
     public static GameBalanceManager Instance
     {

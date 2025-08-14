@@ -12,6 +12,7 @@ namespace Scripts.Runtime.Utilities.Helpers
   /// シーン管理ヘルパークラス
   /// シーンの読み込み、遷移、管理を簡潔に行う
   /// </summary>
+  [DefaultExecutionOrder(-1500)]
   public class SceneHelper : MonoBehaviour
   {
     // シングルトンインスタンス
@@ -25,10 +26,16 @@ namespace Scripts.Runtime.Utilities.Helpers
           GameObject go = new GameObject("SceneHelper");
           _instance = go.AddComponent<SceneHelper>();
           DontDestroyOnLoad(go);
+          // 即座に初期化完了を確認
+          Debug.Log("[SceneHelper] Instance created and initialized");
         }
         return _instance;
       }
     }
+
+    // 初期化完了フラグ
+    private bool _isInitialized = false;
+    public bool IsInitialized => _isInitialized;
 
     // 現在のシーン名
     private string _currentSceneName;
@@ -61,12 +68,45 @@ namespace Scripts.Runtime.Utilities.Helpers
       _currentSceneName = SceneManager.GetActiveScene().name;
       SceneManager.sceneLoaded += OnSceneLoadedCallback;
       SceneManager.sceneUnloaded += OnSceneUnloadedCallback;
+
+      // EventBusの初期化を待機してからハンドラーを登録
+      StartCoroutine(WaitForEventBusAndInitialize());
     }
 
+    /// <summary>
+    /// EventBusの初期化を待機してから初期化を完了する
+    /// </summary>
+    private IEnumerator WaitForEventBusAndInitialize()
+    {
+      // EventBusが利用可能になるまで待機
+      while (EventBus.Instance == null)
+      {
+        Debug.Log("[SceneHelper] Waiting for EventBus to be available...");
+        yield return new WaitForSeconds(0.1f);
+      }
+
+      // SceneTransitionEventのハンドラーを登録
+      Debug.Log("[SceneHelper] Subscribing to SceneTransitionEvent");
+      EventBus.Instance.Subscribe<SceneTransitionEvent>(OnSceneTransitionEvent);
+      
+      // EventBusの状態を確認
+      EventBus.Instance.PrintDebugInfo();
+      Debug.Log("[SceneHelper] Event handlers initialized successfully");
+      
+      // 初期化完了フラグを設定
+      _isInitialized = true;
+    }
+
+    /// <summary>
+    /// シーンヘルパーの破棄
+    /// </summary>
     private void OnDestroy()
     {
       SceneManager.sceneLoaded -= OnSceneLoadedCallback;
       SceneManager.sceneUnloaded -= OnSceneUnloadedCallback;
+
+      // イベント購読を解除
+      EventBus.Instance.Unsubscribe<SceneTransitionEvent>(OnSceneTransitionEvent);
     }
 
     #region Public Methods
@@ -76,6 +116,17 @@ namespace Scripts.Runtime.Utilities.Helpers
     /// </summary>
     public async Task LoadSceneAsync(string sceneName, bool showLoadingScreen = true)
     {
+      // 初期化完了を待つ
+      if (!_isInitialized)
+      {
+        Debug.Log("[SceneHelper] Waiting for initialization...");
+        while (!_isInitialized)
+        {
+          await Task.Delay(10);
+        }
+        Debug.Log("[SceneHelper] Initialization complete, proceeding with scene load");
+      }
+      
       if (_isTransitioning)
       {
         Debug.LogWarning($"[SceneHelper] Already transitioning to a scene");
@@ -231,6 +282,17 @@ namespace Scripts.Runtime.Utilities.Helpers
     #endregion
 
     #region Private Methods
+
+    /// <summary>
+    /// シーン遷移イベントのハンドラー
+    /// </summary>
+    private void OnSceneTransitionEvent(SceneTransitionEvent sceneEvent)
+    {
+      Debug.Log($"[SceneHelper] Scene transition event: {sceneEvent.FromScene} -> {sceneEvent.ToScene}");
+      
+      // 必要に応じて追加の処理を実装
+      // 例：アナリティクス、ログ記録、UI更新など
+    }
 
     /// <summary>
     /// シーン読み込み完了コールバック

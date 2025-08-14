@@ -3,9 +3,7 @@ using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using TMPro;
-using Scripts.Runtime.Utilities.Constants;
 
 namespace Scripts.Runtime.Utilities.Helpers
 {
@@ -207,6 +205,7 @@ namespace Scripts.Runtime.Utilities.Helpers
 
     #region UI Creation Helpers
 
+    [System.Obsolete]
     /// <summary>
     /// ポップアップを作成
     /// </summary>

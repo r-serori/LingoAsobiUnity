@@ -15,6 +15,8 @@ namespace Scripts.Runtime.Services
     #region Singleton Pattern
 
     private static UserManager _instance;
+
+    [System.Obsolete]
     public static UserManager Instance
     {
       get

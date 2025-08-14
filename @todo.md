@@ -90,4 +90,13 @@
   - 改善：Data/Productionディレクトリ作成と移動
   - ServiceBootstrap参照の更新が必要
   - **解決済み**: 標準的なSingletonパターンに更新 ✅
-  - 見積時間: 10分 
+  - 見積時間: 10分
+
+## 🔴 新規緊急タスク (EventBus SceneTransitionEvent エラー)
+
+- [x] SceneHelper初期化時のEventBus依存関係問題修正
+  - 問題：SceneTransitionEventのハンドラーが登録されず警告が発生
+  - 原因：SceneHelper初期化時にEventBusが未初期化
+  - 解決：EventBus初期化完了まで待機するCoroutine実装
+  - 修正箇所：SceneHelper.WaitForEventBusAndInitialize()メソッド追加
+  - 見積時間: 20分 

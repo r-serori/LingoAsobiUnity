@@ -1,134 +1,224 @@
-using UnityEngine;
-using System;
 using System.Threading.Tasks;
-using UnityEngine.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+using Scripts.Runtime.Views.Base;
 using Scripts.Runtime.Core;
-using Scripts.Runtime.DataModels;
-using Scripts.Runtime.Data.Repositories;
-using Scripts.Runtime.Services;
-using System.Linq;
+using Scripts.Runtime.Data.Models.User;
+using Scripts.Runtime.Utilities.Constants;
+using Scripts.Runtime.Utilities.Helpers;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
-  public class HomeScene : MonoBehaviour
+  /// <summary>
+  /// ホーム画面のシーン管理クラス
+  /// </summary>
+  public class HomeScene : BaseScene
   {
-    [SerializeField] private UserProfileView userProfileView;
-    [SerializeField] private CharacterDisplayView mainCharacterView;
-    [SerializeField] private CurrencyDisplayView currencyView;
-    [SerializeField] private Button[] navigationButtons;
+    [Header("Home Scene References")]
+    [SerializeField] private HomeView homeView;
+    [SerializeField] private Button characterButton;
+    [SerializeField] private Button shopButton;
+    [SerializeField] private Button questButton;
+    [SerializeField] private Button inventoryButton;
+    [SerializeField] private Button settingsButton;
 
-    private void Start()
-    {
-      SetupHomeScreen();
-      SubscribeToDataEvents();
-    }
+    private UserProfile currentUser;
 
-    private async void SetupHomeScreen()
+    #region Initialization
+
+    protected override async Task OnInitializeAsync()
     {
-      // データが初期化されるまで待機
-      while (!DataManager.Instance.IsInitialized)
+      await base.OnInitializeAsync();
+
+      // ユーザーデータを取得
+      currentUser = await DataManager.Instance.GetCurrentUserAsync();
+
+      if (currentUser == null)
       {
-        await Task.Delay(100);
+        Debug.LogError("[HomeScene] Failed to get user data");
+        return;
       }
 
-      // ユーザー情報表示
-      await DisplayUserInfo();
-
-      // メインキャラクター表示
-      await DisplayMainCharacter();
-
-      // 通貨情報表示
-      await DisplayCurrency();
-
-      // ナビゲーションボタンの有効化
-      EnableNavigation();
-    }
-
-    private async Task DisplayUserInfo()
-    {
-      try
+      // HomeViewを初期化
+      if (homeView != null)
       {
-        var userProfile = await DataManager.Instance.Users.GetUserProfileAsync();
-        userProfileView.DisplayProfile(userProfile);
-      }
-      catch (Exception ex)
-      {
-        Debug.LogError($"Failed to display user info: {ex.Message}");
+        homeView.SetUserData(currentUser);
       }
     }
 
-    private async Task DisplayMainCharacter()
+    protected override void InitializeViews()
     {
-      try
+      base.InitializeViews();
+
+      // ボタンのイベントを設定
+      if (characterButton != null)
+        characterButton.onClick.AddListener(OnCharacterButtonClicked);
+
+      if (shopButton != null)
+        shopButton.onClick.AddListener(OnShopButtonClicked);
+
+      if (questButton != null)
+        questButton.onClick.AddListener(OnQuestButtonClicked);
+
+      if (inventoryButton != null)
+        inventoryButton.onClick.AddListener(OnInventoryButtonClicked);
+
+      if (settingsButton != null)
+        settingsButton.onClick.AddListener(OnSettingsButtonClicked);
+    }
+
+    #endregion
+
+    #region Scene Lifecycle
+
+    protected override async Task OnAfterActivate()
+    {
+      await base.OnAfterActivate();
+
+      // HomeViewを表示
+      if (homeView != null)
       {
-        var characters = await DataManager.Instance.Characters.GetUserCharactersAsync();
-        var mainCharacter = characters.FirstOrDefault(c => c.IsMainCharacter);
-
-        if (mainCharacter != null)
-        {
-          mainCharacterView.DisplayCharacter(mainCharacter);
-        }
+        await ShowViewAsync<HomeView>();
       }
-      catch (Exception ex)
+
+      // データを更新
+      await RefreshUserData();
+    }
+
+    #endregion
+
+    #region Button Handlers
+
+    private async void OnCharacterButtonClicked()
+    {
+      Debug.Log("[HomeScene] Character button clicked");
+      await NavigateToSceneAsync(GameConstants.Scenes.Character);
+    }
+
+    private async void OnShopButtonClicked()
+    {
+      Debug.Log("[HomeScene] Shop button clicked");
+      await NavigateToSceneAsync(GameConstants.Scenes.Shop);
+    }
+
+    private async void OnQuestButtonClicked()
+    {
+      Debug.Log("[HomeScene] Quest button clicked");
+      await NavigateToSceneAsync(GameConstants.Scenes.Quest);
+    }
+
+    private async void OnInventoryButtonClicked()
+    {
+      Debug.Log("[HomeScene] Inventory button clicked");
+      await NavigateToSceneAsync(GameConstants.Scenes.Inventory);
+    }
+
+    private async void OnSettingsButtonClicked()
+    {
+      Debug.Log("[HomeScene] Settings button clicked");
+      await NavigateToSceneAsync(GameConstants.Scenes.Settings);
+    }
+
+    #endregion
+
+    #region Data Management
+
+    /// <summary>
+    /// ユーザーデータを更新
+    /// </summary>
+    private async Task RefreshUserData()
+    {
+      currentUser = await DataManager.Instance.GetCurrentUserAsync();
+
+      if (homeView != null && currentUser != null)
       {
-        Debug.LogError($"Failed to display main character: {ex.Message}");
+        homeView.SetUserData(currentUser);
+        await homeView.RefreshAsync();
       }
     }
 
-    private async Task DisplayCurrency()
+    #endregion
+
+    #region Event Handling
+
+    protected override void SubscribeToEvents()
     {
-      try
+      base.SubscribeToEvents();
+
+      // レベルアップイベントを購読
+      EventBus.Instance.Subscribe<LevelUpEvent>(OnLevelUp);
+
+      // 通貨変更イベントを購読
+      EventBus.Instance.Subscribe<CurrencyChangedEvent>(OnCurrencyChanged);
+
+      // スタミナ変更イベントを購読
+      EventBus.Instance.Subscribe<StaminaChangedEvent>(OnStaminaChanged);
+    }
+
+    protected override void UnsubscribeFromEvents()
+    {
+      base.UnsubscribeFromEvents();
+
+      EventBus.Instance.Unsubscribe<LevelUpEvent>(OnLevelUp);
+      EventBus.Instance.Unsubscribe<CurrencyChangedEvent>(OnCurrencyChanged);
+      EventBus.Instance.Unsubscribe<StaminaChangedEvent>(OnStaminaChanged);
+    }
+
+    private void OnLevelUp(LevelUpEvent e)
+    {
+      Debug.Log($"[HomeScene] Level up! {e.OldLevel} -> {e.NewLevel}");
+
+      // レベルアップ演出を表示
+      if (homeView != null)
       {
-        var currency = await DataManager.Instance.Users.GetCurrencyAsync();
-        currencyView.DisplayCurrency(currency);
+        homeView.ShowLevelUpEffect(e.NewLevel);
       }
-      catch (Exception ex)
+    }
+
+    private void OnCurrencyChanged(CurrencyChangedEvent e)
+    {
+      Debug.Log($"[HomeScene] {e.Type} changed: {e.OldAmount} -> {e.NewAmount}");
+
+      // 通貨表示を更新
+      if (homeView != null)
       {
-        Debug.LogError($"Failed to display currency: {ex.Message}");
+        _ = homeView.RefreshAsync();
       }
     }
 
-    private void SubscribeToDataEvents()
+    private void OnStaminaChanged(StaminaChangedEvent e)
     {
-      // データ更新イベントの購読
-      DataManager.OnDataUpdated += OnDataUpdated;
-      UserRepository.OnCurrencyUpdated += OnCurrencyUpdated;
-      CharacterRepository.OnCharacterUpdated += OnCharacterUpdated;
-    }
+      Debug.Log($"[HomeScene] Stamina changed: {e.OldStamina} -> {e.NewStamina}");
 
-    private void OnDataUpdated(string dataType)
-    {
-      Debug.Log($"Data updated: {dataType}");
-      // 必要に応じてUI更新
-    }
-
-    private void OnCurrencyUpdated(CurrencyData currency)
-    {
-      currencyView.DisplayCurrency(currency);
-    }
-
-    private void OnCharacterUpdated(CharacterData character)
-    {
-      if (character.IsMainCharacter)
+      // スタミナ表示を更新
+      if (homeView != null)
       {
-        mainCharacterView.DisplayCharacter(character);
+        homeView.UpdateStaminaDisplay(e.NewStamina);
       }
     }
 
-    // ナビゲーションボタンの処理
-    public void OnCharacterButtonClicked()
+    #endregion
+
+    #region Navigation Override
+
+    public override async Task OnBackButtonPressed()
     {
-      SceneManager.LoadScene("CharacterScene");
+      // ホーム画面では確認ダイアログを表示
+      bool shouldExit = await ShowExitConfirmationDialog();
+
+      if (shouldExit)
+      {
+        Application.Quit();
+      }
     }
 
-    public void OnShopButtonClicked()
+    private async Task<bool> ShowExitConfirmationDialog()
     {
-      SceneManager.LoadScene("ShopScene");
+      // TODO: 確認ダイアログを実装
+      await Task.CompletedTask;
+      return false;
     }
 
-    public void OnQuestButtonClicked()
-    {
-      SceneManager.LoadScene("QuestScene");
-    }
+    #endregion
   }
 }

@@ -48,16 +48,51 @@ namespace Scripts.Runtime.Data.Repositories
     /// </summary>
     public async Task<UserProfile> GetCurrentUserAsync()
     {
-      if (_currentUserProfile != null)
+      try
       {
+        Debug.Log("[UserRepository] GetCurrentUserAsync called");
+
+        if (_currentUserProfile != null)
+        {
+          Debug.Log("[UserRepository] Returning cached user profile");
+          return _currentUserProfile;
+        }
+
+        // PlayerPrefsから保存されたユーザーIDを取得
+        string savedUserId = PlayerPrefs.GetString("CurrentUserId", "mock_user_001");
+        Debug.Log($"[UserRepository] Loading user profile for ID: {savedUserId}");
+
+        // 無限ループを防ぐため、直接Mockデータを取得
+        _currentUserProfile = await GetMockUserProfileAsync();
+
+        if (_currentUserProfile != null)
+        {
+          Debug.Log($"[UserRepository] User profile loaded: {_currentUserProfile.userName}");
+        }
+        else
+        {
+          Debug.LogWarning("[UserRepository] Failed to load user profile");
+        }
+
         return _currentUserProfile;
       }
+      catch (Exception e)
+      {
+        Debug.LogError($"[UserRepository] GetCurrentUserAsync error: {e.Message}");
+        Debug.LogError($"[UserRepository] Stack trace: {e.StackTrace}");
 
-      // PlayerPrefsから保存されたユーザーIDを取得
-      string savedUserId = PlayerPrefs.GetString("CurrentUserId", "mock_user_001");
-      _currentUserProfile = await GetByIdAsync(savedUserId);
-
-      return _currentUserProfile;
+        // エラーが発生した場合は、デフォルトのMockデータを返す
+        try
+        {
+          _currentUserProfile = await GetMockUserProfileAsync();
+          return _currentUserProfile;
+        }
+        catch (Exception fallbackError)
+        {
+          Debug.LogError($"[UserRepository] Fallback error: {fallbackError.Message}");
+          return null;
+        }
+      }
     }
 
     /// <summary>
@@ -160,11 +195,24 @@ namespace Scripts.Runtime.Data.Repositories
     /// </summary>
     protected override async Task<UserProfile> GetMockDataByIdAsync(string id)
     {
-      await Task.Delay(100); // ネットワーク遅延をシミュレート
+      try
+      {
+        Debug.Log($"[UserRepository] GetMockDataByIdAsync called with ID: {id}");
 
-      // ScriptableObjectからMockDataを読み込む場合はここに実装
-      // 今回はコードで直接生成
-      return GetMockUserProfileAsync().Result;
+        await Task.Delay(100); // ネットワーク遅延をシミュレート
+
+        // ScriptableObjectからMockDataを読み込む場合はここに実装
+        // 今回はコードで直接生成
+        var mockUser = await GetMockUserProfileAsync();
+        Debug.Log($"[UserRepository] Mock user loaded: {mockUser?.userName ?? "null"}");
+
+        return mockUser;
+      }
+      catch (Exception e)
+      {
+        Debug.LogError($"[UserRepository] GetMockDataByIdAsync error: {e.Message}");
+        return null;
+      }
     }
 
     /// <summary>
@@ -189,35 +237,48 @@ namespace Scripts.Runtime.Data.Repositories
     /// </summary>
     private async Task<UserProfile> GetMockUserProfileAsync()
     {
-      await Task.Yield(); // 非同期コンテキストを維持
-
-      return new UserProfile
+      try
       {
-        userId = "mock_user_001",
-        userName = "Ryuno",
-        email = "test@example.com",
-        userIconUrl = "Characters/ex_character1",
-        level = 99,
-        exp = 15000,
-        nextLevelExp = 5000,
-        gold = 99999,
-        gem = 999,
-        stamina = 150,
-        maxStamina = 150,
-        staminaRecoverySeconds = 180,
-        lastStaminaUpdateTime = DateTime.Now.AddMinutes(-10),
-        favoriteCharacterId = "char_001",
-        enableCharacterAnimation = true,
-        preferredImageQuality = ImageQuality.High,
-        enableImagePreloading = true,
-        enableSoundEffects = true,
-        enableBGM = true,
-        soundVolume = 1.0f,
-        bgmVolume = 0.7f,
-        createdAt = DateTime.Now.AddDays(-30),
-        lastLoginAt = DateTime.Now,
-        updatedAt = DateTime.Now
-      };
+        Debug.Log("[UserRepository] GetMockUserProfileAsync called");
+
+        await Task.Yield(); // 非同期コンテキストを維持
+
+        var mockUser = new UserProfile
+        {
+          userId = "mock_user_001",
+          userName = "Ryuno",
+          email = "test@example.com",
+          userIconUrl = "Characters/ex_character1",
+          level = 99,
+          exp = 15000,
+          nextLevelExp = 5000,
+          gold = 99999,
+          gem = 999,
+          stamina = 150,
+          maxStamina = 150,
+          staminaRecoverySeconds = 180,
+          lastStaminaUpdateTime = DateTime.Now.AddMinutes(-10),
+          favoriteCharacterId = "char_001",
+          enableCharacterAnimation = true,
+          preferredImageQuality = ImageQuality.High,
+          enableImagePreloading = true,
+          enableSoundEffects = true,
+          enableBGM = true,
+          soundVolume = 1.0f,
+          bgmVolume = 0.7f,
+          createdAt = DateTime.Now.AddDays(-30),
+          lastLoginAt = DateTime.Now,
+          updatedAt = DateTime.Now
+        };
+
+        Debug.Log($"[UserRepository] Mock user created: {mockUser.userName}");
+        return mockUser;
+      }
+      catch (Exception e)
+      {
+        Debug.LogError($"[UserRepository] GetMockUserProfileAsync error: {e.Message}");
+        return null;
+      }
     }
 
     /// <summary>

@@ -6,20 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_LingoAsobi/Scenes/_System/TitleScene.unity
-    guid: 44fa3b1aea6124ac6b0afe6a4a00a8f4
+    path: Assets/_LingoAsobi/Scenes/Features/Splash/SplashScene.unity
+    guid: e4330ff8b7e0c45c0a78f6d085c5abff
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Title/TitleScene.unity
+    guid: 13d4a22079c9941a9a6669fe72493e22
   - enabled: 1
     path: Assets/_LingoAsobi/Scenes/Features/Home/HomeScene.unity
     guid: 3d47203516deb42aeac7e50fe3a14014
   - enabled: 1
-    path: Assets/_LingoAsobi/Scenes/SampleScene.unity
-    guid: 8c9cfa26abfee488c85f1582747f6a02
-  - enabled: 1
     path: Assets/_LingoAsobi/Scenes/Features/Profile/ProfileScene.unity
     guid: 29fdca583e0b044c78c0a58dd8096f91
-  - enabled: 1
-    path: Assets/_LingoAsobi/Scenes/Features/Gacha/GachaScene.unity
-    guid: ebaf1678db10740cb95b85166efb1033
   - enabled: 1
     path: Assets/_LingoAsobi/Scenes/Features/Settings/SettingsScene.unity
     guid: 1d06c9a739f814e53873a7aa8bfef47e
@@ -30,8 +27,80 @@ EditorBuildSettings:
     path: Assets/_LingoAsobi/Scenes/Features/Character/CharacterScene.unity
     guid: 29ed747a4952747e48a21d1a4e1bf23d
   - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Gacha/GachaScene.unity
+    guid: ebaf1678db10740cb95b85166efb1033
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Shop/ShopScene.unity
+    guid: e52fed633a7e94e9e87bb6e2433b6fad
+  - enabled: 1
     path: Assets/_LingoAsobi/Scenes/Features/Training/Grammar/GrammarScene.unity
     guid: 402e2d77e7f0d4632a5182c8bcf9b5c5
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Grammar/GrammarTowerScene.unity
+    guid: 12055933e1324426ca8d49ea997c8ba7
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Grammar/GrammarFloorScene.unity
+    guid: 7f3ec9711fd064ebdb1f97d60ec73f2b
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Grammar/GrammarBattleScene.unity
+    guid: 4170449e367ef421c8459676db4ee447
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Pronunciation/PronunciationScene.unity
+    guid: 1755c3bf85d48414b8cdf2b21ae225f3
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Pronunciation/PronunciationAreaScene.unity
+    guid: e62e6d1f09bb8478c8bb5f14517ad4de
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Pronunciation/PronunciationStageOneScene.unity
+    guid: bc9d877def29e40d5a65d0a4f2bd8ea2
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Pronunciation/PronunciationLestenScene.unity
+    guid: e772997414cbc41cc90deb27f0fde01b
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Pronunciation/PronunciationLessonScene.unity
+    guid: 65158963de72648418ce25a25c6b3461
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Speaking/SpeakingScene.unity
+    guid: 5f96fd480c26946ca8a82903174bdfb0
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Speaking/SpeakingPlayScene.unity
+    guid: 14cae9ff4e93849369abc8c465d63a85
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Speaking/SpeakingQuestScene.unity
+    guid: c480b6d8433dd498b8b161aa58ae3259
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Speaking/SpeakingResultScene.unity
+    guid: f89ad9f1e64744dd9a311132d60dbdfc
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyScene.unity
+    guid: 0922b3de69e4844698ef2f29ac3a05a3
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyLessonScene.unity
+    guid: 70776468ec09248a58cac266428b7da2
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyTopicScene.unity
+    guid: fb90a0668d2184280a08d9cdc0384533
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyTypeFourScene.unity
+    guid: af3c7c68a08a642049e242f9cf15f99b
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyTypeOneScene.unity
+    guid: 9978ed39d5d8c4f35abba286c02158b1
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyTypeThreeScene.unity
+    guid: 57cb6e099923548c3a0dd67c702127a1
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Vocabulary/VocabularyTypeTwoScene.unity
+    guid: c06b5e01199f4444c846f59cb8aa2de1
+  - enabled: 1
+    path: Assets/_LingoAsobi/Scenes/Features/Training/Result/ResultScene.unity
+    guid: accce82d93a634a1292fd834b8e7cca4
+  - enabled: 0
+    path: Assets/_LingoAsobi/Scenes/SampleScene.unity
+    guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 0
+    path: Assets/_LingoAsobi/Scenes/_System/TitleScene.unity
+    guid: 44fa3b1aea6124ac6b0afe6a4a00a8f4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

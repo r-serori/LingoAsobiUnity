@@ -51,8 +51,11 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void Awake()
     {
+      Debug.Log("[DataManager] Awake called");
+
       if (_instance != null && _instance != this)
       {
+        Debug.LogWarning("[DataManager] Another instance already exists. Destroying this one.");
         Destroy(gameObject);
         return;
       }
@@ -60,6 +63,7 @@ namespace Scripts.Runtime.Core
       _instance = this;
       DontDestroyOnLoad(gameObject);
 
+      Debug.Log("[DataManager] Instance set, initializing repositories");
       InitializeRepositories();
     }
 
@@ -68,11 +72,26 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void InitializeRepositories()
     {
-      _userRepository = UserRepository.Instance;
-      _characterRepository = CharacterRepository.Instance;
-      _cache = DataCache.Instance;
+      Debug.Log("[DataManager] Initializing repositories...");
 
-      Debug.Log("[DataManager] Repositories initialized");
+      try
+      {
+        _userRepository = UserRepository.Instance;
+        Debug.Log("[DataManager] UserRepository initialized");
+
+        _characterRepository = CharacterRepository.Instance;
+        Debug.Log("[DataManager] CharacterRepository initialized");
+
+        _cache = DataCache.Instance;
+        Debug.Log("[DataManager] DataCache initialized");
+
+        Debug.Log("[DataManager] All repositories initialized successfully");
+      }
+      catch (Exception e)
+      {
+        Debug.LogError($"[DataManager] Repository initialization failed: {e.Message}");
+        Debug.LogError(e.StackTrace);
+      }
     }
 
     /// <summary>
@@ -90,20 +109,66 @@ namespace Scripts.Runtime.Core
       {
         Debug.Log("[DataManager] Starting data initialization...");
 
-        // ユーザーデータの読み込み
+        // リポジトリの確認
+        if (_userRepository == null)
+        {
+          Debug.LogError("[DataManager] UserRepository is null, reinitializing");
+          InitializeRepositories();
+        }
+
+        if (_userRepository == null)
+        {
+          throw new InvalidOperationException("UserRepository could not be initialized");
+        }
+
+        // ユーザーデータの読み込み（直接リポジトリから取得）
+        Debug.Log("[DataManager] Loading user profile directly from repository...");
         var userProfile = await _userRepository.GetCurrentUserAsync();
         if (userProfile == null)
         {
           Debug.LogWarning("[DataManager] No user profile found, creating default");
-          // デフォルトユーザーでログイン
-          userProfile = await _userRepository.LoginAsync("test@example.com", "password");
+          try
+          {
+            // デフォルトユーザーでログイン
+            Debug.Log("[DataManager] Attempting default login...");
+            userProfile = await _userRepository.LoginAsync("test@example.com", "password");
+            if (userProfile == null)
+            {
+              Debug.LogWarning("[DataManager] Default login failed, continuing without user");
+            }
+            else
+            {
+              Debug.Log($"[DataManager] Default login successful: {userProfile.userName}");
+            }
+          }
+          catch (Exception e)
+          {
+            Debug.LogError($"[DataManager] Default login error: {e.Message}");
+            Debug.LogError($"[DataManager] Stack trace: {e.StackTrace}");
+            // ログイン失敗でも処理を続行
+          }
+        }
+        else
+        {
+          Debug.Log($"[DataManager] User profile loaded: {userProfile.userName}");
         }
 
         // キャラクターデータの読み込み
-        var characters = await _characterRepository.GetAllAsync();
-        Debug.Log($"[DataManager] Loaded {characters.Count} characters");
+        try
+        {
+          Debug.Log("[DataManager] Loading character data...");
+          var characters = await _characterRepository.GetAllAsync();
+          Debug.Log($"[DataManager] Loaded {characters.Count} characters");
+        }
+        catch (Exception e)
+        {
+          Debug.LogError($"[DataManager] Character loading error: {e.Message}");
+          Debug.LogError($"[DataManager] Stack trace: {e.StackTrace}");
+          // キャラクター読み込み失敗でも処理を続行
+        }
 
         // その他の初期データ読み込み
+        Debug.Log("[DataManager] Loading initial data...");
         await LoadInitialDataAsync();
 
         _isInitialized = true;
@@ -114,7 +179,9 @@ namespace Scripts.Runtime.Core
       catch (Exception e)
       {
         Debug.LogError($"[DataManager] Initialization failed: {e.Message}");
+        Debug.LogError($"[DataManager] Stack trace: {e.StackTrace}");
         OnDataError?.Invoke(e.Message);
+        throw;
       }
     }
 
@@ -140,11 +207,31 @@ namespace Scripts.Runtime.Core
     /// </summary>
     public async Task<UserProfile> GetCurrentUserAsync()
     {
+      // 初期化が完了していない場合は、直接リポジトリから取得を試行
       if (!_isInitialized)
       {
-        await InitializeAsync();
+        Debug.LogWarning("[DataManager] GetCurrentUserAsync called before initialization, attempting direct access");
+
+        // リポジトリが初期化されているかチェック
+        if (_userRepository == null)
+        {
+          Debug.LogError("[DataManager] UserRepository is null, cannot get user profile");
+          return null;
+        }
+
+        try
+        {
+          // 直接リポジトリから取得
+          return await _userRepository.GetCurrentUserAsync();
+        }
+        catch (Exception e)
+        {
+          Debug.LogError($"[DataManager] Failed to get user profile: {e.Message}");
+          return null;
+        }
       }
 
+      // 初期化完了後は通常の処理
       return await _userRepository.GetCurrentUserAsync();
     }
 
