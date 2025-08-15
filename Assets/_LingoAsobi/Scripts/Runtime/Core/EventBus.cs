@@ -38,11 +38,9 @@ namespace Scripts.Runtime.Core
         {
             if (instance != null) return;
             
-            GameObject go = new GameObject("[EventBus]");
+            GameObject go = new GameObject("EventBus");
             instance = go.AddComponent<EventBus>();
             DontDestroyOnLoad(go);
-            
-            Debug.Log("[EventBus] Instance created and set to DontDestroyOnLoad");
         }
         
         private void Awake()

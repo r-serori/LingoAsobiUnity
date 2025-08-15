@@ -19,7 +19,7 @@ namespace Scripts.Runtime.Utilities.Constants
       public const string Home = "HomeScene";
       public const string Character = "CharacterScene";
       public const string Shop = "ShopScene";
-      public const string Quest = "QuestScene";
+      public const string Gacha = "GachaScene";
       public const string Training = "TrainingScene";
       public const string Grammar = "GrammarScene";
       public const string Pronunciation = "PronunciationScene";
@@ -227,6 +227,9 @@ namespace Scripts.Runtime.Utilities.Constants
       public static readonly Color Rare = new Color(0.2f, 0.6f, 1f);
       public static readonly Color Epic = new Color(0.8f, 0.2f, 1f);
       public static readonly Color Legendary = new Color(1f, 0.8f, 0.2f);
+
+      // 黄色
+      public static readonly Color ExpBar = new Color(1f, 0.8f, 0.2f);
     }
 
     #endregion

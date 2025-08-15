@@ -305,7 +305,7 @@ GameObject:
   - component: {fileID: 7575861479103363967}
   - component: {fileID: 7889810686473017727}
   m_Layer: 5
-  m_Name: StaminaValue
+  m_Name: StaminaAmountText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1289,7 +1289,6 @@ GameObject:
   - component: {fileID: 2045012998863901658}
   - component: {fileID: 7725660248780221318}
   - component: {fileID: 5283490638902491213}
-  - component: {fileID: 4102523561923065182}
   m_Layer: 5
   m_Name: ProfileImage
   m_TagString: Untagged
@@ -1354,23 +1353,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &4102523561923065182
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5011390386086653116}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0796891986a5454984e4debe22fb826, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetImage: {fileID: 0}
-  loadingIndicator: {fileID: 0}
-  defaultProfileImagePath: Characters/default_profile
-  useCircularMask: 1
-  loadingSpinner: {fileID: 0}
 --- !u!1 &5314249848277085375
 GameObject:
   m_ObjectHideFlags: 0
@@ -1404,7 +1386,6 @@ RectTransform:
   - {fileID: 2887622446576098505}
   - {fileID: 5330844947775124746}
   - {fileID: 5960465315620833917}
-  - {fileID: 4416857448769578930}
   - {fileID: 1519486474681271768}
   m_Father: {fileID: 5056189337945952456}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1477,16 +1458,16 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6636468404294534233}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.22950003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2045012998863901658}
-  m_Father: {fileID: 6718307693985132749}
+  m_Father: {fileID: 5056189337945952456}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -336, y: 47.5962}
+  m_AnchoredPosition: {x: -491.42767, y: 30.03614}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3367153128306059500
@@ -1824,9 +1805,8 @@ GameObject:
   - component: {fileID: 5056189337945952456}
   - component: {fileID: 5126632122115041247}
   - component: {fileID: 6627581590957889904}
-  - component: {fileID: 958702028957310775}
   m_Layer: 5
-  m_Name: ProfileHeader
+  m_Name: ProfileHeaderView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1846,12 +1826,13 @@ RectTransform:
   m_Children:
   - {fileID: 6718307693985132749}
   - {fileID: 7737001877304470248}
+  - {fileID: 4416857448769578930}
   - {fileID: 9011222327550914190}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0.299, z: 0}
   m_AnchorMin: {x: 0, y: 0.9163697}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.05999756, y: -22.1437}
+  m_AnchoredPosition: {x: 0.05999756, y: -22.143677}
   m_SizeDelta: {x: -0.12, y: 44.2878}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5126632122115041247
@@ -1892,39 +1873,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &958702028957310775
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7514914458808761280}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9ee680f2ef8649739c0ed49cb3fcbb0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  profileImageView: {fileID: 4102523561923065182}
-  userNameText: {fileID: 4720165114349630006}
-  levelText: {fileID: 1481771349601526268}
-  goldText: {fileID: 8907604281321638205}
-  gemText: {fileID: 999507772889427628}
-  expMaxImage: {fileID: 7245271010031888918}
-  expProgressImage: {fileID: 3137322532071073492}
-  expText: {fileID: 0}
-  expBarContainer: {fileID: 8119767520107696986}
-  staminaMaxImage: {fileID: 8448544199835007602}
-  staminaProgressImage: {fileID: 3106307077964335460}
-  staminaValueText: {fileID: 7889810686473017727}
-  staminaBarContainer: {fileID: 1468670195619026575}
-  gameBalance: {fileID: 11400000, guid: e703766a7bc244af188006fb36b65a0a, type: 2}
-  useAnimatedProgress: 1
-  progressAnimationSpeed: 2
-  headerHeightRatio: 0.1
-  enableResponsiveLayout: 1
-  autoSetupOnStart: 1
-  testMockUser: {fileID: 11400000, guid: d564ad4214f45472094b1e60594a54b5, type: 2}
-  useTestDataOnStart: 1
 --- !u!1 &8119767520107696986
 GameObject:
   m_ObjectHideFlags: 0

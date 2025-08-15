@@ -12,16 +12,12 @@ namespace Scripts.Runtime.Data.Cache
   public class DataCache
   {
     // シングルトンインスタンス
-    private static DataCache _instance;
+    private static readonly DataCache _instance;
     public static DataCache Instance
     {
       get
       {
-        if (_instance == null)
-        {
-          _instance = new DataCache();
-        }
-        return _instance;
+        return _instance ?? new DataCache();
       }
     }
 

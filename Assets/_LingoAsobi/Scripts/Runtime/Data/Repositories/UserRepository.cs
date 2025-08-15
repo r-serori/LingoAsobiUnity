@@ -20,16 +20,12 @@ namespace Scripts.Runtime.Data.Repositories
     protected override string CacheKeyPrefix => "user";
 
     // シングルトンインスタンス
-    private static UserRepository _instance;
+    private static readonly UserRepository _instance;
     public static UserRepository Instance
     {
       get
       {
-        if (_instance == null)
-        {
-          _instance = new UserRepository();
-        }
-        return _instance;
+        return _instance ?? new UserRepository();
       }
     }
 
@@ -50,17 +46,13 @@ namespace Scripts.Runtime.Data.Repositories
     {
       try
       {
-        Debug.Log("[UserRepository] GetCurrentUserAsync called");
-
         if (_currentUserProfile != null)
         {
-          Debug.Log("[UserRepository] Returning cached user profile");
           return _currentUserProfile;
         }
 
         // PlayerPrefsから保存されたユーザーIDを取得
         string savedUserId = PlayerPrefs.GetString("CurrentUserId", "mock_user_001");
-        Debug.Log($"[UserRepository] Loading user profile for ID: {savedUserId}");
 
         // 無限ループを防ぐため、直接Mockデータを取得
         _currentUserProfile = await GetMockUserProfileAsync();
@@ -136,7 +128,6 @@ namespace Scripts.Runtime.Data.Repositories
       PlayerPrefs.SetString("CurrentUserId", mockUser.userId);
       PlayerPrefs.Save();
 
-      Debug.Log($"[UserRepository] Mock Login successful - User: {mockUser.userName}");
       return mockUser;
     }
 

@@ -51,11 +51,8 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void Awake()
     {
-      Debug.Log("[DataManager] Awake called");
-
       if (_instance != null && _instance != this)
       {
-        Debug.LogWarning("[DataManager] Another instance already exists. Destroying this one.");
         Destroy(gameObject);
         return;
       }
@@ -63,7 +60,6 @@ namespace Scripts.Runtime.Core
       _instance = this;
       DontDestroyOnLoad(gameObject);
 
-      Debug.Log("[DataManager] Instance set, initializing repositories");
       InitializeRepositories();
     }
 
@@ -72,20 +68,13 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void InitializeRepositories()
     {
-      Debug.Log("[DataManager] Initializing repositories...");
-
       try
       {
         _userRepository = UserRepository.Instance;
-        Debug.Log("[DataManager] UserRepository initialized");
 
         _characterRepository = CharacterRepository.Instance;
-        Debug.Log("[DataManager] CharacterRepository initialized");
 
         _cache = DataCache.Instance;
-        Debug.Log("[DataManager] DataCache initialized");
-
-        Debug.Log("[DataManager] All repositories initialized successfully");
       }
       catch (Exception e)
       {
@@ -101,45 +90,25 @@ namespace Scripts.Runtime.Core
     {
       if (_isInitialized)
       {
-        Debug.Log("[DataManager] Already initialized");
         return;
       }
 
       try
       {
-        Debug.Log("[DataManager] Starting data initialization...");
-
         // リポジトリの確認
         if (_userRepository == null)
         {
-          Debug.LogError("[DataManager] UserRepository is null, reinitializing");
           InitializeRepositories();
         }
 
-        if (_userRepository == null)
-        {
-          throw new InvalidOperationException("UserRepository could not be initialized");
-        }
-
         // ユーザーデータの読み込み（直接リポジトリから取得）
-        Debug.Log("[DataManager] Loading user profile directly from repository...");
         var userProfile = await _userRepository.GetCurrentUserAsync();
         if (userProfile == null)
         {
-          Debug.LogWarning("[DataManager] No user profile found, creating default");
           try
           {
             // デフォルトユーザーでログイン
-            Debug.Log("[DataManager] Attempting default login...");
             userProfile = await _userRepository.LoginAsync("test@example.com", "password");
-            if (userProfile == null)
-            {
-              Debug.LogWarning("[DataManager] Default login failed, continuing without user");
-            }
-            else
-            {
-              Debug.Log($"[DataManager] Default login successful: {userProfile.userName}");
-            }
           }
           catch (Exception e)
           {
@@ -148,17 +117,11 @@ namespace Scripts.Runtime.Core
             // ログイン失敗でも処理を続行
           }
         }
-        else
-        {
-          Debug.Log($"[DataManager] User profile loaded: {userProfile.userName}");
-        }
 
         // キャラクターデータの読み込み
         try
         {
-          Debug.Log("[DataManager] Loading character data...");
           var characters = await _characterRepository.GetAllAsync();
-          Debug.Log($"[DataManager] Loaded {characters.Count} characters");
         }
         catch (Exception e)
         {
@@ -168,13 +131,11 @@ namespace Scripts.Runtime.Core
         }
 
         // その他の初期データ読み込み
-        Debug.Log("[DataManager] Loading initial data...");
-        await LoadInitialDataAsync();
+        await LoadInitialDataAsync(); // BULK APIをInvoke
 
         _isInitialized = true;
         OnDataInitialized?.Invoke();
 
-        Debug.Log("[DataManager] Data initialization complete");
       }
       catch (Exception e)
       {
@@ -196,7 +157,6 @@ namespace Scripts.Runtime.Core
         // 今後追加するリポジトリのデータ読み込み
         // _shopRepository.GetAllAsync(),
         // _questRepository.GetAllAsync(),
-        // _inventoryRepository.GetAllAsync()
       };
 
       await Task.WhenAll(tasks);

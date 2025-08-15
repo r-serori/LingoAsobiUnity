@@ -48,11 +48,9 @@ namespace Scripts.Runtime.Core
         {
             if (instance != null) return;
             
-            GameObject go = new GameObject("[GameEventHandlerRegistry]");
+            GameObject go = new GameObject("GameEventHandlerRegistry");
             instance = go.AddComponent<GameEventHandlerRegistry>();
             DontDestroyOnLoad(go);
-            
-            Debug.Log("[GameEventHandlerRegistry] Instance created");
         }
         
         private void Awake()

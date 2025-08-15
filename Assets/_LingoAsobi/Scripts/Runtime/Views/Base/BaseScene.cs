@@ -97,12 +97,8 @@ namespace Scripts.Runtime.Views.Base
     {
       if (isInitialized)
       {
-        Debug.LogWarning($"[{sceneName}] Already initialized");
         return;
       }
-
-      Debug.Log($"[{sceneName}] Initializing scene...");
-
       try
       {
         // 認証チェック
@@ -111,7 +107,6 @@ namespace Scripts.Runtime.Views.Base
           bool isAuthenticated = await CheckAuthenticationAsync();
           if (!isAuthenticated)
           {
-            Debug.LogWarning($"[{sceneName}] Authentication required");
             await HandleAuthenticationRequired();
             return;
           }
@@ -133,7 +128,6 @@ namespace Scripts.Runtime.Views.Base
         // シーンをアクティブ化
         await ActivateAsync();
 
-        Debug.Log($"[{sceneName}] Scene initialization complete");
       }
       catch (Exception e)
       {

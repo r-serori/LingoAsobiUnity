@@ -91,7 +91,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
       var cached = _cache.Get<List<T>>(cacheKey);
       if (cached != null)
       {
-        Debug.Log($"[{GetType().Name}] Cache hit for all entities");
         return cached;
       }
 

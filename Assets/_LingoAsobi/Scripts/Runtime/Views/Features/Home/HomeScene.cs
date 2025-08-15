@@ -6,6 +6,7 @@ using Scripts.Runtime.Core;
 using Scripts.Runtime.Data.Models.User;
 using Scripts.Runtime.Utilities.Constants;
 using Scripts.Runtime.Utilities.Helpers;
+using Scripts.Runtime.Views.Features.Footer;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -16,11 +17,7 @@ namespace Scripts.Runtime.Views.Features.Home
   {
     [Header("Home Scene References")]
     [SerializeField] private HomeView homeView;
-    [SerializeField] private Button characterButton;
-    [SerializeField] private Button shopButton;
-    [SerializeField] private Button questButton;
-    [SerializeField] private Button inventoryButton;
-    [SerializeField] private Button settingsButton;
+    [SerializeField] private NavigationFooterView navigationFooterView;
 
     private UserProfile currentUser;
 
@@ -40,31 +37,14 @@ namespace Scripts.Runtime.Views.Features.Home
       }
 
       // HomeViewを初期化
-      if (homeView != null)
-      {
-        homeView.SetUserData(currentUser);
-      }
+      homeView?.SetUserData(currentUser);
     }
 
     protected override void InitializeViews()
     {
       base.InitializeViews();
 
-      // ボタンのイベントを設定
-      if (characterButton != null)
-        characterButton.onClick.AddListener(OnCharacterButtonClicked);
-
-      if (shopButton != null)
-        shopButton.onClick.AddListener(OnShopButtonClicked);
-
-      if (questButton != null)
-        questButton.onClick.AddListener(OnQuestButtonClicked);
-
-      if (inventoryButton != null)
-        inventoryButton.onClick.AddListener(OnInventoryButtonClicked);
-
-      if (settingsButton != null)
-        settingsButton.onClick.AddListener(OnSettingsButtonClicked);
+      navigationFooterView?.Initialize();
     }
 
     #endregion
@@ -87,39 +67,6 @@ namespace Scripts.Runtime.Views.Features.Home
 
     #endregion
 
-    #region Button Handlers
-
-    private async void OnCharacterButtonClicked()
-    {
-      Debug.Log("[HomeScene] Character button clicked");
-      await NavigateToSceneAsync(GameConstants.Scenes.Character);
-    }
-
-    private async void OnShopButtonClicked()
-    {
-      Debug.Log("[HomeScene] Shop button clicked");
-      await NavigateToSceneAsync(GameConstants.Scenes.Shop);
-    }
-
-    private async void OnQuestButtonClicked()
-    {
-      Debug.Log("[HomeScene] Quest button clicked");
-      await NavigateToSceneAsync(GameConstants.Scenes.Quest);
-    }
-
-    private async void OnInventoryButtonClicked()
-    {
-      Debug.Log("[HomeScene] Inventory button clicked");
-      await NavigateToSceneAsync(GameConstants.Scenes.Inventory);
-    }
-
-    private async void OnSettingsButtonClicked()
-    {
-      Debug.Log("[HomeScene] Settings button clicked");
-      await NavigateToSceneAsync(GameConstants.Scenes.Settings);
-    }
-
-    #endregion
 
     #region Data Management
 
@@ -146,33 +93,22 @@ namespace Scripts.Runtime.Views.Features.Home
       base.SubscribeToEvents();
 
       // レベルアップイベントを購読
-      EventBus.Instance.Subscribe<LevelUpEvent>(OnLevelUp);
+      EventBus.Instance.Subscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
 
       // 通貨変更イベントを購読
       EventBus.Instance.Subscribe<CurrencyChangedEvent>(OnCurrencyChanged);
 
       // スタミナ変更イベントを購読
-      EventBus.Instance.Subscribe<StaminaChangedEvent>(OnStaminaChanged);
+      EventBus.Instance.Subscribe<StaminaChangedEvent>(homeView.profileHeaderView.OnStaminaChanged);
     }
 
     protected override void UnsubscribeFromEvents()
     {
       base.UnsubscribeFromEvents();
 
-      EventBus.Instance.Unsubscribe<LevelUpEvent>(OnLevelUp);
+      EventBus.Instance.Unsubscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
       EventBus.Instance.Unsubscribe<CurrencyChangedEvent>(OnCurrencyChanged);
-      EventBus.Instance.Unsubscribe<StaminaChangedEvent>(OnStaminaChanged);
-    }
-
-    private void OnLevelUp(LevelUpEvent e)
-    {
-      Debug.Log($"[HomeScene] Level up! {e.OldLevel} -> {e.NewLevel}");
-
-      // レベルアップ演出を表示
-      if (homeView != null)
-      {
-        homeView.ShowLevelUpEffect(e.NewLevel);
-      }
+      EventBus.Instance.Unsubscribe<StaminaChangedEvent>(homeView.profileHeaderView.OnStaminaChanged);
     }
 
     private void OnCurrencyChanged(CurrencyChangedEvent e)
@@ -183,17 +119,6 @@ namespace Scripts.Runtime.Views.Features.Home
       if (homeView != null)
       {
         _ = homeView.RefreshAsync();
-      }
-    }
-
-    private void OnStaminaChanged(StaminaChangedEvent e)
-    {
-      Debug.Log($"[HomeScene] Stamina changed: {e.OldStamina} -> {e.NewStamina}");
-
-      // スタミナ表示を更新
-      if (homeView != null)
-      {
-        homeView.UpdateStaminaDisplay(e.NewStamina);
       }
     }
 

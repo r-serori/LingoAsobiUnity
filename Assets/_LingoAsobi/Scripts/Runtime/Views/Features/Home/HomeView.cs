@@ -11,6 +11,7 @@ using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Utilities.Helpers;
 using Scripts.Runtime.Core;
 using Scripts.Runtime.Utilities.Constants;
+using Scripts.Runtime.Views.Features.Header;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -20,34 +21,16 @@ namespace Scripts.Runtime.Views.Features.Home
   /// </summary>
   public class HomeView : BaseView
   {
-    [Header("User Info UI")]
-    [SerializeField] private TextMeshProUGUI userNameText;
-    [SerializeField] private TextMeshProUGUI userLevelText;
-    [SerializeField] private Image userIconImage;
-    [SerializeField] private Slider expSlider;
-    [SerializeField] private TextMeshProUGUI expText;
-
-    [Header("Currency UI")]
-    [SerializeField] private TextMeshProUGUI goldText;
-    [SerializeField] private TextMeshProUGUI gemText;
-
-    [Header("Stamina UI")]
-    [SerializeField] private TextMeshProUGUI staminaText;
-    [SerializeField] private Slider staminaSlider;
-    [SerializeField] private TextMeshProUGUI staminaTimerText;
+    [Header("Header")]
+    [SerializeField] public ProfileHeaderView profileHeaderView;
 
     [Header("Character Display")]
     [SerializeField] private Image characterImage;
     [SerializeField] private TextMeshProUGUI characterNameText;
     [SerializeField] private Button characterChangeButton;
 
-    [Header("Effects")]
-    [SerializeField] private GameObject levelUpEffectPrefab;
-    [SerializeField] private Transform effectContainer;
-
     private UserProfile currentUser;
     private CharacterData currentCharacter;
-    private float staminaUpdateTimer = 0f;
 
     #region Initialization
 
@@ -66,25 +49,6 @@ namespace Scripts.Runtime.Views.Features.Home
       {
         characterChangeButton.onClick.AddListener(OnCharacterChangeClicked);
       }
-
-      // 通貨ボタンにショップへの遷移を追加
-      if (goldText != null)
-      {
-        var goldButton = goldText.GetComponentInParent<Button>();
-        if (goldButton != null)
-        {
-          goldButton.onClick.AddListener(() => OnCurrencyClicked("gold"));
-        }
-      }
-
-      if (gemText != null)
-      {
-        var gemButton = gemText.GetComponentInParent<Button>();
-        if (gemButton != null)
-        {
-          gemButton.onClick.AddListener(() => OnCurrencyClicked("gem"));
-        }
-      }
     }
 
     #endregion
@@ -97,6 +61,7 @@ namespace Scripts.Runtime.Views.Features.Home
     public void SetUserData(UserProfile user)
     {
       currentUser = user;
+      profileHeaderView.SetUserData(currentUser);
       UpdateDisplay();
     }
 
@@ -123,92 +88,8 @@ namespace Scripts.Runtime.Views.Features.Home
     protected override void UpdateDisplay()
     {
       if (currentUser == null) return;
-
-      // ユーザー情報を表示
-      if (userNameText != null)
-        userNameText.text = currentUser.userName;
-
-      if (userLevelText != null)
-        userLevelText.text = $"Lv.{currentUser.level}";
-
-      // 経験値バー
-      if (expSlider != null)
-      {
-        float expProgress = (float)currentUser.exp / currentUser.nextLevelExp;
-        expSlider.value = expProgress;
-      }
-
-      if (expText != null)
-        expText.text = $"{currentUser.exp}/{currentUser.nextLevelExp}";
-
-      // 通貨
-      UpdateCurrencyDisplay();
-
-      // スタミナ
-      UpdateStaminaDisplay(currentUser.CalculateCurrentStamina());
-
       // キャラクター
       UpdateCharacterDisplay();
-    }
-
-    /// <summary>
-    /// 通貨表示を更新
-    /// </summary>
-    private void UpdateCurrencyDisplay()
-    {
-      if (currentUser == null) return;
-
-      if (goldText != null)
-        goldText.text = FormatCurrency(currentUser.gold);
-
-      if (gemText != null)
-        gemText.text = FormatCurrency(currentUser.gem);
-    }
-
-    /// <summary>
-    /// スタミナ表示を更新
-    /// </summary>
-    public void UpdateStaminaDisplay(int currentStamina)
-    {
-      if (currentUser == null) return;
-
-      if (staminaText != null)
-        staminaText.text = $"{currentStamina}/{currentUser.maxStamina}";
-
-      if (staminaSlider != null)
-      {
-        float staminaProgress = (float)currentStamina / currentUser.maxStamina;
-        staminaSlider.value = staminaProgress;
-      }
-
-      // スタミナ回復タイマーを更新
-      UpdateStaminaTimer(currentStamina);
-    }
-
-    /// <summary>
-    /// スタミナタイマーを更新
-    /// </summary>
-    private void UpdateStaminaTimer(int currentStamina)
-    {
-      if (staminaTimerText == null) return;
-
-      if (currentStamina >= currentUser.maxStamina)
-      {
-        staminaTimerText.text = "MAX";
-        staminaTimerText.color = Color.green;
-      }
-      else
-      {
-        // 次のスタミナ回復までの時間を計算
-        var timeSinceLastUpdate = DateTime.Now - currentUser.lastStaminaUpdateTime;
-        var secondsUntilNext = currentUser.staminaRecoverySeconds - (timeSinceLastUpdate.TotalSeconds % currentUser.staminaRecoverySeconds);
-
-        int minutes = (int)(secondsUntilNext / 60);
-        int seconds = (int)(secondsUntilNext % 60);
-
-        staminaTimerText.text = $"{minutes:00}:{seconds:00}";
-        staminaTimerText.color = Color.white;
-      }
     }
 
     /// <summary>
@@ -236,69 +117,12 @@ namespace Scripts.Runtime.Views.Features.Home
 
     private void Update()
     {
-      if (!isVisible || currentUser == null) return;
-
-      // スタミナタイマーを定期的に更新
-      staminaUpdateTimer += Time.deltaTime;
-      if (staminaUpdateTimer >= 1f) // 1秒ごとに更新
-      {
-        staminaUpdateTimer = 0f;
-        int currentStamina = currentUser.CalculateCurrentStamina();
-        UpdateStaminaDisplay(currentStamina);
-      }
     }
 
     #endregion
 
     #region Effects
 
-    /// <summary>
-    /// レベルアップエフェクトを表示
-    /// </summary>
-    public void ShowLevelUpEffect(int newLevel)
-    {
-      if (levelUpEffectPrefab != null && effectContainer != null)
-      {
-        GameObject effect = Instantiate(levelUpEffectPrefab, effectContainer);
-
-        // エフェクトにレベルを設定
-        var levelText = effect.GetComponentInChildren<TextMeshProUGUI>();
-        if (levelText != null)
-        {
-          levelText.text = $"LEVEL UP!\nLv.{newLevel}";
-        }
-
-        // 3秒後に削除
-        Destroy(effect, 3f);
-      }
-
-      // UIも更新
-      if (userLevelText != null)
-        userLevelText.text = $"Lv.{newLevel}";
-
-      // アニメーション
-      _ = AnimateLevelUp();
-    }
-
-    /// <summary>
-    /// レベルアップアニメーション
-    /// </summary>
-    private async Task AnimateLevelUp()
-    {
-      if (userLevelText != null)
-      {
-        // テキストを点滅させる
-        Color originalColor = userLevelText.color;
-
-        for (int i = 0; i < 3; i++)
-        {
-          userLevelText.color = Color.yellow;
-          await Task.Delay(200);
-          userLevelText.color = originalColor;
-          await Task.Delay(200);
-        }
-      }
-    }
 
     #endregion
 
@@ -324,21 +148,5 @@ namespace Scripts.Runtime.Views.Features.Home
 
     #endregion
 
-    #region Utility
-
-    /// <summary>
-    /// 通貨をフォーマット
-    /// </summary>
-    private string FormatCurrency(int amount)
-    {
-      if (amount >= 1000000)
-        return $"{amount / 1000000f:F1}M";
-      else if (amount >= 1000)
-        return $"{amount / 1000f:F1}K";
-      else
-        return amount.ToString();
-    }
-
-    #endregion
   }
 }

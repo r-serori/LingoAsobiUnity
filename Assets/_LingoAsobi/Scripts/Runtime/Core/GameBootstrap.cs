@@ -41,12 +41,11 @@ namespace Scripts.Runtime.Core
 
     #region Unity Lifecycle
 
-    private void Awake()
+    private async Task Awake()
     {
       // シングルトン処理
       if (_instance != null && _instance != this)
       {
-        Debug.LogWarning("[GameBootstrap] Another instance already exists. Destroying this one.");
         Destroy(gameObject);
         return;
       }
@@ -58,12 +57,11 @@ namespace Scripts.Runtime.Core
       SetupApplicationSettings();
 
       // 初期化開始
-      Debug.Log("[GameBootstrap] Starting initialization");
-      StartInitialization();
+      await StartInitialization();
     }
 
     private async void Start()
-        {
+    {
         // 全ての必須マネージャーを初期化
         InitializeManagers();
         
@@ -93,7 +91,6 @@ namespace Scripts.Runtime.Core
 
     private void OnApplicationQuit()
     {
-      Debug.Log("[GameBootstrap] Application is quitting...");
       SaveGameState();
       Cleanup();
     }
@@ -109,13 +106,10 @@ namespace Scripts.Runtime.Core
     {
       if (isInitializing || isInitialized)
       {
-        Debug.Log("[GameBootstrap] Initialization already in progress or completed");
         return;
       }
 
       isInitializing = true;
-
-      Debug.Log("[GameBootstrap] ========== Starting Game Initialization ==========");
 
       try
       {
@@ -123,7 +117,7 @@ namespace Scripts.Runtime.Core
         await ShowSplashScreen();
 
         // コアシステムの初期化
-        await InitializeCoreSystemsAsync();
+        InitializeCoreSystems();
 
         // データの初期化
         await InitializeDataAsync();
@@ -135,7 +129,6 @@ namespace Scripts.Runtime.Core
         await AuthenticateAsync();
 
         isInitialized = true;
-        Debug.Log("[GameBootstrap] ========== Initialization Complete ==========");
 
         // 初期シーンへ遷移
         await TransitionToInitialScene();
@@ -157,8 +150,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void SetupApplicationSettings()
     {
-      Debug.Log("[GameBootstrap] Setting up application settings...");
-
       // フレームレート設定
       Application.targetFrameRate = targetFrameRate;
       QualitySettings.vSyncCount = enableVSync ? 1 : 0;
@@ -179,73 +170,51 @@ namespace Scripts.Runtime.Core
         Caching.ClearCache();
         PlayerPrefs.DeleteAll();
         PlayerPrefs.Save();
-        Debug.Log("[GameBootstrap] Cache and PlayerPrefs cleared");
       }
     }
 
     /// <summary>
     /// コアシステムの初期化
     /// </summary>
-    private async Task InitializeCoreSystemsAsync()
+    private void InitializeCoreSystems()
     {
-      Debug.Log("[GameBootstrap] Initializing core systems...");
-
       // 各マネージャーの初期化
       InitializeManagers();
 
       // ヘルパーの初期化
       InitializeHelpers();
-
-      // イベントシステムの初期化
-      EventBus.Instance.ClearAll();
-
-      await Task.Delay(100); // 初期化の安定化のための待機
     }
 
     /// <summary>
     /// マネージャーの初期化
     /// </summary>
     private void InitializeManagers()
+    {
+        // コアマネージャーの初期化と確認
+        var eventBus = EventBus.Instance;
+        var eventRegistry = GameEventHandlerRegistry.Instance;
+        var sceneHelper = SceneHelper.Instance;
+        var dataManager = DataManager.Instance;
+        
+        // デバッグモードの場合、デバッガーを追加
+      #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (GameObject.Find("EventBusDebugger") == null)
         {
-            // コアマネージャーの初期化と確認
-            var eventBus = EventBus.Instance;
-            var eventRegistry = GameEventHandlerRegistry.Instance;
-            var sceneHelper = SceneHelper.Instance;
-            
-            Debug.Log("[GameBootstrap] ===== Manager Initialization Status =====");
-            Debug.Log($"[GameBootstrap] EventBus: {eventBus != null}");
-            Debug.Log($"[GameBootstrap] EventHandlerRegistry: {eventRegistry != null}");
-            Debug.Log($"[GameBootstrap] SceneHelper: {sceneHelper != null}");
-            
-            // デバッグモードの場合、デバッガーを追加
-            #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (GameObject.Find("[EventBusDebugger]") == null)
-            {
-                GameObject debuggerGo = new GameObject("[EventBusDebugger]");
-                debuggerGo.AddComponent<EventBusDebugger>();
-                DontDestroyOnLoad(debuggerGo);
-                Debug.Log("[GameBootstrap] EventBusDebugger added for development");
-            }
-            #endif
+          GameObject debuggerGo = new GameObject("EventBusDebugger");
+          debuggerGo.AddComponent<EventBusDebugger>();
+          DontDestroyOnLoad(debuggerGo);
         }
+      #endif
+    }
 
     /// <summary>
     /// ヘルパーの初期化
     /// </summary>
     private void InitializeHelpers()
     {
-      // SceneHelperの初期化
-      if (SceneHelper.Instance == null)
-      {
-        GameObject sceneHelperObj = new GameObject("SceneHelper");
-        sceneHelperObj.AddComponent<SceneHelper>();
-        sceneHelperObj.transform.SetParent(transform);
-      }
-
-      // フェード用Canvasを作成
-      SceneHelper.Instance.CreateFadeCanvas();
-
-      Debug.Log("[GameBootstrap] Helpers initialized");
+      // SceneHelperの初期化（Instanceアクセスで自動作成される）
+      var sceneHelper = SceneHelper.Instance;
+      sceneHelper.CreateFadeCanvas();
     }
 
     /// <summary>
@@ -253,32 +222,22 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private async Task InitializeDataAsync()
     {
-      Debug.Log("[GameBootstrap] Initializing data...");
-
       try
       {
         // DataManagerの初期化
         if (DataManager.Instance != null)
         {
-          Debug.Log("[GameBootstrap] DataManager.Instance is not null");
           await DataManager.Instance.InitializeAsync();
         }
-        else
-        {
-          Debug.LogError("[GameBootstrap] DataManager.Instance is null");
-          throw new InvalidOperationException("DataManager not initialized");
-        }
 
-        // 初回起動チェック
+        // 初回ログインチェック
         bool isFirstLaunch = !PlayerPrefs.HasKey(GameConstants.PlayerPrefsKeys.IsFirstLaunch);
         if (isFirstLaunch)
         {
-          await HandleFirstLaunch();
-          PlayerPrefs.SetInt(GameConstants.PlayerPrefsKeys.IsFirstLaunch, 0);
-          PlayerPrefs.Save();
+          await HandleFirstLaunch(); // 初回起動時の特別な処理を実行
+          PlayerPrefs.SetInt(GameConstants.PlayerPrefsKeys.IsFirstLaunch, 0); // 初回起動フラグを0に設定
+          PlayerPrefs.Save(); // 設定を保存
         }
-
-        Debug.Log("[GameBootstrap] Data initialization complete");
       }
       catch (Exception e)
       {
@@ -292,14 +251,13 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private async Task LoadGameSettingsAsync()
     {
-      Debug.Log("[GameBootstrap] Loading game settings...");
-
       // 音量設定
       float masterVolume = PlayerPrefs.GetFloat(GameConstants.PlayerPrefsKeys.MasterVolume, 1.0f);
       float bgmVolume = PlayerPrefs.GetFloat(GameConstants.PlayerPrefsKeys.BGMVolume, 0.7f);
       float seVolume = PlayerPrefs.GetFloat(GameConstants.PlayerPrefsKeys.SEVolume, 1.0f);
 
       AudioListener.volume = masterVolume;
+      // AudioManager.Instance.SetVolume(masterVolume, bgmVolume, seVolume);
       // TODO: AudioManagerに設定を適用
 
       // 言語設定
@@ -311,7 +269,6 @@ namespace Scripts.Runtime.Core
       QualitySettings.SetQualityLevel(graphicsQuality);
 
       await Task.CompletedTask;
-      Debug.Log("[GameBootstrap] Game settings loaded");
     }
 
     /// <summary>
@@ -319,7 +276,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private async Task AuthenticateAsync()
     {
-      Debug.Log("[GameBootstrap] Authenticating...");
       try
       {
         if (useMockData)
@@ -328,13 +284,11 @@ namespace Scripts.Runtime.Core
           var user = await UserRepository.Instance.LoginAsync("test@example.com", "password");
           if (user != null)
           {
-            Debug.Log($"[GameBootstrap] Mock authentication successful: {user.userName}");
             PlayerPrefs.SetString(GameConstants.PlayerPrefsKeys.LastLoginDate, DateTime.Now.ToString());
             PlayerPrefs.Save();
           }
           else
           {
-            Debug.LogWarning("[GameBootstrap] Mock authentication failed");
           }
         }
         else
@@ -360,11 +314,8 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private async Task ShowSplashScreen()
     {
-      Debug.Log("[GameBootstrap] Showing splash screen...");
-
       if (splashScreenCanvasGroup == null)
       {
-        Debug.LogWarning("Splash Screen Canvas Group is not set.");
         await Task.Delay((int)(splashScreenDuration * 1000));
         return;
       }
@@ -372,36 +323,18 @@ namespace Scripts.Runtime.Core
       // ① UIHelperでフェードインさせる
       await UIHelper.FadeInAsync(splashScreenCanvasGroup, 0.5f); // 0.5秒かけてフェードイン
 
-      // ② ロゴの表示時間（元々の待機時間からフェードイン・アウトの時間を引く）
-      float waitTime = splashScreenDuration - 1.0f; // フェードイン0.5秒 + フェードアウト0.5秒
-      if (waitTime > 0)
-      {
-        await Task.Delay((int)(waitTime * 1000));
-      }
-
       // ③ UIHelperでフェードアウトさせる
       await UIHelper.FadeOutAsync(splashScreenCanvasGroup, 0.5f); // 0.5秒かけてフェードアウト
     }
 
     private async Task TransitionToInitialScene()
     {
-        string targetScene = initialSceneName;
-        
-        // SceneHelper.Instanceを使用（既存コードとの互換性）
-        if (SceneHelper.Instance.SceneExists(targetScene))
-        {
-            bool success = await SceneHelper.Instance.LoadSceneAsync(targetScene, false);
-            if (!success)
-            {
-                Debug.LogError($"[GameBootstrap] Failed to load initial scene: {targetScene}");
-                // フォールバックシーンへの遷移
-                await HandleSceneLoadFailure(targetScene);
-            }
-        }
-        else
-        {
-            Debug.LogError($"[GameBootstrap] Scene does not exist in build settings: {targetScene}");
-        }
+      bool success = await SceneHelper.Instance.LoadSceneAsync(initialSceneName, false);
+      if (!success)
+      {
+          // フォールバックシーンへの遷移
+          await HandleSceneLoadFailure(initialSceneName);
+      }
     }
 
     private async Task HandleSceneLoadFailure(string failedScene)
@@ -423,8 +356,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private async Task HandleFirstLaunch()
     {
-      Debug.Log("[GameBootstrap] Handling first launch...");
-
       // デフォルトデータの作成
       CreateDefaultData();
 
@@ -443,7 +374,6 @@ namespace Scripts.Runtime.Core
     private void CreateDefaultData()
     {
       // TODO: 初期データの作成
-      Debug.Log("[GameBootstrap] Creating default data...");
     }
 
     /// <summary>
@@ -457,8 +387,6 @@ namespace Scripts.Runtime.Core
       PlayerPrefs.SetString(GameConstants.PlayerPrefsKeys.Language, "ja");
       PlayerPrefs.SetInt(GameConstants.PlayerPrefsKeys.GraphicsQuality, 2);
       PlayerPrefs.Save();
-
-      Debug.Log("[GameBootstrap] Default settings saved");
     }
 
     #endregion

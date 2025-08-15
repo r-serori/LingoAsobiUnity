@@ -170,6 +170,19 @@ namespace Scripts.Runtime.Data.Models.User
       gem = Math.Max(0, gem + amount);
       updatedAt = DateTime.Now;
     }
+
+    /// <summary>
+    /// 通貨をフォーマット
+    /// </summary>
+    public string FormatCurrency(int amount)
+    {
+      if (amount >= 1000000)
+        return $"{amount / 1000000f:F1}M";
+      else if (amount >= 1000)
+        return $"{amount / 1000f:F1}K";
+      else
+        return amount.ToString();
+    }
   }
 
   /// <summary>

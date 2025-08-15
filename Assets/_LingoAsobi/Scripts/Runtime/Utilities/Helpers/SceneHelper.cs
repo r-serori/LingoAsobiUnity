@@ -14,7 +14,7 @@ namespace Scripts.Runtime.Utilities.Helpers
   {
     private static SceneHelper instance;
     private bool isTransitioning = false;
-    
+
     // 現在のシーン名
     private string _currentSceneName;
     public string CurrentSceneName => _currentSceneName;
@@ -58,11 +58,9 @@ namespace Scripts.Runtime.Utilities.Helpers
     {
       if (instance != null) return;
 
-      GameObject go = new GameObject("[SceneHelper]");
+      GameObject go = new GameObject("SceneHelper");
       instance = go.AddComponent<SceneHelper>();
       DontDestroyOnLoad(go);
-
-      Debug.Log("[SceneHelper] Instance created and set to DontDestroyOnLoad");
     }
 
     private void Awake()

@@ -138,22 +138,22 @@ namespace Scripts.Runtime.Views.Features.Character
       base.SubscribeToEvents();
 
       // キャラクター関連のイベントを購読
-      EventBus.Instance.Subscribe<SceneTransitionEvent>(OnSceneTransition);
+      EventBus.Instance.Subscribe<ItemObtainedEvent>(OnItemObtained);
     }
 
     protected override void UnsubscribeFromEvents()
     {
       base.UnsubscribeFromEvents();
 
-      EventBus.Instance.Unsubscribe<SceneTransitionEvent>(OnSceneTransition);
+      EventBus.Instance.Unsubscribe<ItemObtainedEvent>(OnItemObtained);
     }
 
-    private void OnSceneTransition(SceneTransitionEvent e)
+    private void OnItemObtained(ItemObtainedEvent e)
     {
       // キャラクター解放アイテムの場合
-      if (e.SceneName.StartsWith("character_unlock_"))
+      if (e.ItemId.StartsWith("character_unlock_"))
       {
-        string characterId = e.SceneName.Replace("character_unlock_", "");
+        string characterId = e.ItemId.Replace("character_unlock_", "");
         _ = UnlockCharacter(characterId);
       }
     }

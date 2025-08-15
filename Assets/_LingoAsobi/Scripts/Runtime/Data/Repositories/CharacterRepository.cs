@@ -21,16 +21,12 @@ namespace Scripts.Runtime.Data.Repositories
     protected override string CacheKeyPrefix => "character";
 
     // シングルトンインスタンス
-    private static CharacterRepository _instance;
+    private static readonly CharacterRepository _instance;
     public static CharacterRepository Instance
     {
       get
       {
-        if (_instance == null)
-        {
-          _instance = new CharacterRepository();
-        }
-        return _instance;
+        return _instance ?? new CharacterRepository();
       }
     }
 
