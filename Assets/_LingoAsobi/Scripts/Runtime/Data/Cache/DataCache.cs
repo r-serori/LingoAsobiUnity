@@ -66,7 +66,6 @@ namespace Scripts.Runtime.Data.Cache
       };
 
       _cache[key] = entry;
-      Debug.Log($"[DataCache] Cached data with key: {key}");
     }
 
     /// <summary>
@@ -88,7 +87,6 @@ namespace Scripts.Runtime.Data.Cache
         if (entry.ExpirationTime < DateTime.Now)
         {
           _cache.Remove(key);
-          Debug.Log($"[DataCache] Cache expired for key: {key}");
           return default(T);
         }
 
@@ -134,7 +132,6 @@ namespace Scripts.Runtime.Data.Cache
     {
       if (_cache.Remove(key))
       {
-        Debug.Log($"[DataCache] Removed cache for key: {key}");
       }
     }
 
@@ -152,7 +149,6 @@ namespace Scripts.Runtime.Data.Cache
         _cache.Remove(key);
       }
 
-      Debug.Log($"[DataCache] Cleared {keysToRemove.Count} entries with prefix: {prefix}");
     }
 
     /// <summary>
@@ -162,7 +158,6 @@ namespace Scripts.Runtime.Data.Cache
     {
       int count = _cache.Count;
       _cache.Clear();
-      Debug.Log($"[DataCache] Cleared all {count} cache entries");
     }
 
     /// <summary>
@@ -182,7 +177,6 @@ namespace Scripts.Runtime.Data.Cache
 
       if (expiredKeys.Count > 0)
       {
-        Debug.Log($"[DataCache] Removed {expiredKeys.Count} expired entries");
       }
     }
 
@@ -198,7 +192,6 @@ namespace Scripts.Runtime.Data.Cache
           .First();
 
       _cache.Remove(oldestEntry.Key);
-      Debug.Log($"[DataCache] Removed oldest entry: {oldestEntry.Key}");
     }
 
     /// <summary>

@@ -7,6 +7,8 @@ using Scripts.Runtime.Data.Models.User;
 using Scripts.Runtime.Utilities.Constants;
 using Scripts.Runtime.Utilities.Helpers;
 using Scripts.Runtime.Views.Features.Footer;
+using Scripts.Runtime.Data.Models.Character;
+using Scripts.Runtime.Data.Repositories;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -27,25 +29,21 @@ namespace Scripts.Runtime.Views.Features.Home
     {
       await base.OnInitializeAsync();
 
-      // ユーザーデータを取得
+      // ユーザーデータを取得（DataManager経由）
       currentUser = await DataManager.Instance.GetCurrentUserAsync();
 
-      if (currentUser == null)
+      // お気に入りキャラクターも取得（DataManager経由）
+      CharacterData favoriteCharacter = null;
+      if (!string.IsNullOrEmpty(currentUser.favoriteCharacterId))
       {
-        Debug.LogError("[HomeScene] Failed to get user data");
-        return;
+        favoriteCharacter = await DataManager.Instance.GetCharacterByIdAsync(currentUser.favoriteCharacterId);
       }
 
-      // HomeViewを初期化
-      homeView?.SetUserData(currentUser);
+      // HomeViewを初期化（ユーザーデータとキャラクターデータの両方を設定）
+      homeView.SetUserData(currentUser);
+      homeView.SetCharacterData(favoriteCharacter);
     }
 
-    protected override void InitializeViews()
-    {
-      base.InitializeViews();
-
-      navigationFooterView?.Initialize();
-    }
 
     #endregion
 
@@ -55,10 +53,22 @@ namespace Scripts.Runtime.Views.Features.Home
     {
       await base.OnAfterActivate();
 
+      // 既に表示されている場合は何もしない
+      if (homeView.isVisible && navigationFooterView.isVisible)
+      {
+        return;
+      }
+
       // HomeViewを表示
       if (homeView != null)
       {
         await ShowViewAsync<HomeView>();
+      }
+
+      // NavigationFooterViewも表示
+      if (navigationFooterView != null)
+      {
+        await ShowViewAsync<NavigationFooterView>();
       }
 
       // データを更新
@@ -66,7 +76,6 @@ namespace Scripts.Runtime.Views.Features.Home
     }
 
     #endregion
-
 
     #region Data Management
 
@@ -92,28 +101,31 @@ namespace Scripts.Runtime.Views.Features.Home
     {
       base.SubscribeToEvents();
 
-      // レベルアップイベントを購読
-      EventBus.Instance.Subscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
+
+      if (homeView?.profileHeaderView != null)
+      {
+        // レベルアップイベントを購読
+        EventBus.Instance.Subscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
+
+        // スタミナ変更イベントを購読
+        EventBus.Instance.Subscribe<StaminaChangedEvent>(homeView.profileHeaderView.OnStaminaChanged);
+      }
 
       // 通貨変更イベントを購読
       EventBus.Instance.Subscribe<CurrencyChangedEvent>(OnCurrencyChanged);
-
-      // スタミナ変更イベントを購読
-      EventBus.Instance.Subscribe<StaminaChangedEvent>(homeView.profileHeaderView.OnStaminaChanged);
     }
 
     protected override void UnsubscribeFromEvents()
     {
       base.UnsubscribeFromEvents();
 
-      EventBus.Instance.Unsubscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
+      // EventBus.Instance.Unsubscribe<LevelUpEvent>(homeView.profileHeaderView.OnLevelUp);
       EventBus.Instance.Unsubscribe<CurrencyChangedEvent>(OnCurrencyChanged);
       EventBus.Instance.Unsubscribe<StaminaChangedEvent>(homeView.profileHeaderView.OnStaminaChanged);
     }
 
     private void OnCurrencyChanged(CurrencyChangedEvent e)
     {
-      Debug.Log($"[HomeScene] {e.CurrencyType} changed: {e.OldAmount} -> {e.NewAmount}");
 
       // 通貨表示を更新
       if (homeView != null)

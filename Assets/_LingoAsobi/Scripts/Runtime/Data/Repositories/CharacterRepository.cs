@@ -58,10 +58,10 @@ namespace Scripts.Runtime.Data.Repositories
     /// <summary>
     /// お気に入りのキャラクターを取得
     /// </summary>
-    public async Task<List<CharacterData>> GetFavoriteCharactersAsync()
+    public async Task<CharacterData> GetFavoriteCharactersAsync()
     {
       var allCharacters = await GetAllAsync();
-      return allCharacters.Where(c => c.isFavorite && c.isUnlocked).ToList();
+      return allCharacters.Where(c => c.isFavorite && c.isUnlocked).FirstOrDefault();
     }
 
     /// <summary>
@@ -81,7 +81,6 @@ namespace Scripts.Runtime.Data.Repositories
       // APIで更新（Mockでは省略）
       await UpdateAsync(character);
 
-      Debug.Log($"[CharacterRepository] Character unlocked: {character.characterName}");
       return true;
     }
 
@@ -99,7 +98,6 @@ namespace Scripts.Runtime.Data.Repositories
       character.ToggleFavorite();
       await UpdateAsync(character);
 
-      Debug.Log($"[CharacterRepository] Favorite toggled for: {character.characterName} -> {character.isFavorite}");
       return true;
     }
 
@@ -124,7 +122,6 @@ namespace Scripts.Runtime.Data.Repositories
 
       await UpdateAsync(character);
 
-      Debug.Log($"[CharacterRepository] Character leveled up: {character.characterName} -> Lv.{character.level}");
       return true;
     }
 
@@ -162,10 +159,10 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_001",
                     characterName = "キャラ1",
                     description = "キャラ1です。文法が得意。",
-                    portraitImagePath = "Character/ex_character1",
-                    fullBodyImagePath = "Character/ex_character1",
-                    avatarImagePath = "Character/ex_character1",
-                    iconImagePath = "Character/ex_character1",
+                    portraitImagePath = "Characters/ex_character1",
+                    fullBodyImagePath = "Characters/ex_character1",
+                    avatarImagePath = "Characters/ex_character1",
+                    iconImagePath = "Characters/ex_character1",
                     defaultAnimation = AnimationType.Idle,
                     animationSpeed = 1.0f,
                     enableRandomAnimation = true,
@@ -187,10 +184,10 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_002",
                     characterName = "キャラ2",
                     description = "キャラ2です。リスニングが得意。",
-                    portraitImagePath = "Character/ex_character2",
-                    fullBodyImagePath = "Character/ex_character2",
-                    avatarImagePath = "Character/ex_character2",
-                    iconImagePath = "Character/ex_character2",
+                    portraitImagePath = "Characters/ex_character2",
+                    fullBodyImagePath = "Characters/ex_character2",
+                    avatarImagePath = "Characters/ex_character2",
+                    iconImagePath = "Characters/ex_character2",
                     defaultAnimation = AnimationType.Walk,
                     animationSpeed = 1.2f,
                     enableRandomAnimation = true,
@@ -212,10 +209,10 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_003",
                     characterName = "キャラ3",
                     description = "キャラ3です。スピーキングが得意。",
-                    portraitImagePath = "Character/ex_character3",
-                    fullBodyImagePath = "Character/ex_character3",
-                    avatarImagePath = "Character/ex_character3",
-                    iconImagePath = "Character/ex_character3",
+                    portraitImagePath = "Characters/ex_character3",
+                    fullBodyImagePath = "Characters/ex_character3",
+                    avatarImagePath = "Characters/ex_character3",
+                    iconImagePath = "Characters/ex_character3",
                     defaultAnimation = AnimationType.Jump,
                     animationSpeed = 0.8f,
                     enableRandomAnimation = false,
@@ -237,10 +234,10 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_004",
                     characterName = "キャラ4",
                     description = "キャラ4です。総合力が高い。",
-                    portraitImagePath = "Character/ex_character4",
-                    fullBodyImagePath = "Character/ex_character4",
-                    avatarImagePath = "Character/ex_character4",
-                    iconImagePath = "Character/ex_character4",
+                    portraitImagePath = "Characters/ex_character4",
+                    fullBodyImagePath = "Characters/ex_character4",
+                    avatarImagePath = "Characters/ex_character4",
+                    iconImagePath = "Characters/ex_character4",
                     defaultAnimation = AnimationType.Victory,
                     animationSpeed = 1.5f,
                     enableRandomAnimation = true,
@@ -258,6 +255,11 @@ namespace Scripts.Runtime.Data.Repositories
                     unlockedDate = DateTime.Now.AddDays(-5)
                 }
             };
+    }
+
+    protected override async Task<CharacterData> GetMockDataAsync()
+    {
+      return null;
     }
 
     #endregion

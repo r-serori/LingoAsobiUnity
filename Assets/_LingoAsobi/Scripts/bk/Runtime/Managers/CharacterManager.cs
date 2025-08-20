@@ -55,7 +55,6 @@ namespace Scripts.Runtime.Managers
       _instance = this;
       DontDestroyOnLoad(gameObject);
 
-      Debug.Log("CharacterManager Singleton 初期化完了");
     }
 
     /// <summary>
@@ -115,7 +114,6 @@ namespace Scripts.Runtime.Managers
       if (character != null)
       {
         character.isUnlocked = true;
-        Debug.Log($"キャラクター '{character.characterName}' をアンロックしました！");
       }
     }
 
@@ -128,7 +126,6 @@ namespace Scripts.Runtime.Managers
       if (character != null)
       {
         character.isFavorite = !character.isFavorite;
-        Debug.Log($"キャラクター '{character.characterName}' のお気に入り: {character.isFavorite}");
       }
     }
 
@@ -155,11 +152,8 @@ namespace Scripts.Runtime.Managers
     [ContextMenu("Show All Characters")]
     public void ShowAllCharacters()
     {
-      Debug.Log($"=== Character Database ({characters.Count} characters) ===");
       foreach (var character in characters)
       {
-        Debug.Log($"ID: {character.characterId}, Name: {character.characterName}, " +
-                 $"Unlocked: {character.isUnlocked}, Favorite: {character.isFavorite}");
       }
     }
 

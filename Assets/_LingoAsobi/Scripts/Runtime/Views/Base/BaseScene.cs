@@ -9,8 +9,8 @@ using Scripts.Runtime.Utilities.Constants;
 namespace Scripts.Runtime.Views.Base
 {
   /// <summary>
-  /// すべてのSceneの基底クラス
-  /// シーン共通の機能とライフサイクルを提供
+  /// すべてのSceneの基底クラス（改善版）
+  /// シーン内のどこにあってもViewを検索可能
   /// </summary>
   public abstract class BaseScene : MonoBehaviour
   {
@@ -19,9 +19,22 @@ namespace Scripts.Runtime.Views.Base
     [SerializeField] protected bool requiresAuthentication = true;
     [SerializeField] protected bool autoInitialize = true;
 
-    [Header("UI References")]
+    [Header("Search Settings")]
+    [SerializeField] protected ViewSearchMode searchMode = ViewSearchMode.SceneWide;
+    [SerializeField] protected bool cacheViews = true;
+
+    [Header("UI References (Optional)")]
     [SerializeField] protected Canvas mainCanvas;
     [SerializeField] protected Camera uiCamera;
+
+    // View検索モード
+    public enum ViewSearchMode
+    {
+      ChildrenOnly,      // 子要素のみ検索（従来の動作）
+      SceneWide,         // シーン全体から検索（推奨）
+      SpecificCanvas,    // 特定のCanvas配下から検索
+      Manual            // 手動設定のみ
+    }
 
     // Scene状態
     protected bool isInitialized = false;
@@ -46,26 +59,22 @@ namespace Scripts.Runtime.Views.Base
         sceneName = gameObject.scene.name;
       }
 
-      // Canvas参照を取得
-      if (mainCanvas == null)
+      // メインCanvasの自動検索（オプション）
+      if (mainCanvas == null && searchMode == ViewSearchMode.SpecificCanvas)
       {
-        mainCanvas = GetComponentInChildren<Canvas>();
+        mainCanvas = FindMainCanvas();
       }
 
-      // UICamera参照を取得
-      if (uiCamera == null && mainCanvas != null)
+      // UICameraの自動検索
+      if (uiCamera == null)
       {
-        uiCamera = mainCanvas.worldCamera;
-        if (uiCamera == null)
-        {
-          uiCamera = Camera.main;
-        }
+        uiCamera = Camera.main;
       }
     }
 
     protected virtual async void Start()
     {
-      if (autoInitialize)
+      if (autoInitialize && !isInitialized)
       {
         await InitializeAsync();
       }
@@ -99,6 +108,7 @@ namespace Scripts.Runtime.Views.Base
       {
         return;
       }
+
       try
       {
         // 認証チェック
@@ -120,14 +130,13 @@ namespace Scripts.Runtime.Views.Base
 
         // Viewの収集と初期化
         CollectViews();
-        InitializeViews();
+        await InitializeViewsAsync();
 
         isInitialized = true;
         OnSceneInitialized?.Invoke();
 
         // シーンをアクティブ化
         await ActivateAsync();
-
       }
       catch (Exception e)
       {
@@ -158,7 +167,6 @@ namespace Scripts.Runtime.Views.Base
     /// </summary>
     protected virtual async Task HandleAuthenticationRequired()
     {
-      Debug.Log($"[{sceneName}] Redirecting to title...");
       await SceneHelper.Instance.LoadSceneAsync(GameConstants.Scenes.Title);
     }
 
@@ -168,66 +176,196 @@ namespace Scripts.Runtime.Views.Base
     protected virtual async Task HandleInitializationError(Exception error)
     {
       Debug.LogError($"[{sceneName}] Fatal error: {error.Message}");
-      // エラーダイアログを表示するなど
       await Task.CompletedTask;
     }
 
     #endregion
 
-    #region View Management
+    #region View Management - 改善版
 
     /// <summary>
-    /// Viewを収集
+    /// メインCanvasを検索
+    /// </summary>
+    private Canvas FindMainCanvas()
+    {
+      // "Canvas"という名前のオブジェクトを優先
+      GameObject canvasObj = GameObject.Find("Canvas");
+      if (canvasObj != null)
+      {
+        return canvasObj.GetComponent<Canvas>();
+      }
+
+      // なければ最初に見つかったCanvasを使用
+      return FindObjectOfType<Canvas>();
+    }
+
+    /// <summary>
+    /// Viewを収集（改善版 - 検索モードに応じて動作を変更）
     /// </summary>
     protected virtual void CollectViews()
     {
-      BaseView[] foundViews = GetComponentsInChildren<BaseView>(true);
+      BaseView[] foundViews = null;
 
-      foreach (var view in foundViews)
+      switch (searchMode)
       {
-        string viewName = view.GetType().Name;
-        if (!views.ContainsKey(viewName))
+        case ViewSearchMode.ChildrenOnly:
+          // 従来の動作：子要素のみ検索
+          foundViews = GetComponentsInChildren<BaseView>(true);
+          break;
+
+        case ViewSearchMode.SceneWide:
+          // シーン全体から検索（推奨）
+          foundViews = FindObjectsOfType<BaseView>(true);
+          break;
+
+        case ViewSearchMode.SpecificCanvas:
+          // 特定のCanvas配下から検索
+          if (mainCanvas != null)
+          {
+            foundViews = mainCanvas.GetComponentsInChildren<BaseView>(true);
+          }
+          else
+          {
+            Debug.LogWarning($"[{sceneName}] Canvas not set, falling back to scene-wide search");
+            foundViews = FindObjectsOfType<BaseView>(true);
+          }
+          break;
+
+        case ViewSearchMode.Manual:
+          // 手動設定のみ使用
+          return;
+      }
+
+      if (foundViews != null)
+      {
+        foreach (var view in foundViews)
         {
-          views.Add(viewName, view);
-          Debug.Log($"[{sceneName}] Found view: {viewName}");
+          RegisterView(view);
         }
       }
+    }
+
+    /// <summary>
+    /// Viewを登録
+    /// </summary>
+    protected void RegisterView(BaseView view)
+    {
+      if (view == null) return;
+
+      string viewName = view.GetType().Name;
+
+      if (!views.ContainsKey(viewName))
+      {
+        views.Add(viewName, view);
+      }
+    }
+
+    /// <summary>
+    /// Viewを手動で登録（Manual mode用）
+    /// </summary>
+    public void RegisterViewManually(BaseView view)
+    {
+      if (view == null)
+      {
+        Debug.LogError($"[{sceneName}] Cannot register null view");
+        return;
+      }
+
+      RegisterView(view);
     }
 
     /// <summary>
     /// Viewを初期化
     /// </summary>
-    protected virtual void InitializeViews()
+    protected virtual async Task InitializeViewsAsync()
     {
       foreach (var view in views.Values)
       {
-        if (!view.autoInitialize)
-        {
-          view.Initialize();
-        }
+        view.Initialize();
       }
+
+      await Task.CompletedTask;
     }
 
     /// <summary>
-    /// Viewを取得
+    /// Viewを取得（改善版）
     /// </summary>
     public T GetView<T>() where T : BaseView
     {
       string viewName = typeof(T).Name;
 
+      // キャッシュから取得
       if (views.ContainsKey(viewName))
       {
         return views[viewName] as T;
       }
 
-      // 動的に検索
-      T view = GetComponentInChildren<T>(true);
-      if (view != null)
+      // キャッシュになければ動的に検索
+      if (!cacheViews || searchMode != ViewSearchMode.Manual)
       {
-        views[viewName] = view;
+        T view = FindView<T>();
+
+        if (view != null && cacheViews)
+        {
+          RegisterView(view);
+        }
+
+        return view;
       }
 
-      return view;
+      return null;
+    }
+
+    /// <summary>
+    /// Viewを動的に検索
+    /// </summary>
+    private T FindView<T>() where T : BaseView
+    {
+
+      switch (searchMode)
+      {
+        case ViewSearchMode.ChildrenOnly:
+          return GetComponentInChildren<T>(true);
+
+        case ViewSearchMode.SceneWide:
+          return FindObjectOfType<T>(true);
+
+        case ViewSearchMode.SpecificCanvas:
+          if (mainCanvas != null)
+          {
+            return mainCanvas.GetComponentInChildren<T>(true);
+          }
+          return FindObjectOfType<T>(true);
+
+        default:
+          return null;
+      }
+    }
+
+    /// <summary>
+    /// すべての登録済みViewを取得
+    /// </summary>
+    public IEnumerable<BaseView> GetAllViews()
+    {
+      return views.Values;
+    }
+
+    /// <summary>
+    /// 特定の型のすべてのViewを取得
+    /// </summary>
+    public T[] GetAllViewsOfType<T>() where T : BaseView
+    {
+      List<T> result = new List<T>();
+
+      foreach (var view in views.Values)
+      {
+        if (view is T typedView)
+        {
+          result.Add(typedView);
+        }
+      }
+
+      return result.ToArray();
     }
 
     /// <summary>
@@ -286,16 +424,11 @@ namespace Scripts.Runtime.Views.Base
     {
       if (isActive)
       {
-        Debug.LogWarning($"[{sceneName}] Already active");
         return;
       }
 
-      Debug.Log($"[{sceneName}] Activating scene...");
-
       await OnBeforeActivate();
-
       isActive = true;
-
       await OnAfterActivate();
 
       OnSceneActivated?.Invoke();
@@ -312,93 +445,41 @@ namespace Scripts.Runtime.Views.Base
         return;
       }
 
-      Debug.Log($"[{sceneName}] Deactivating scene...");
 
       await OnBeforeDeactivate();
-
       isActive = false;
-
       await OnAfterDeactivate();
 
       OnSceneDeactivated?.Invoke();
     }
 
-    /// <summary>
-    /// アクティブ化前の処理
-    /// </summary>
-    protected virtual async Task OnBeforeActivate()
-    {
-      await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// アクティブ化後の処理
-    /// </summary>
-    protected virtual async Task OnAfterActivate()
-    {
-      await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// 非アクティブ化前の処理
-    /// </summary>
-    protected virtual async Task OnBeforeDeactivate()
-    {
-      await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// 非アクティブ化後の処理
-    /// </summary>
-    protected virtual async Task OnAfterDeactivate()
-    {
-      await Task.CompletedTask;
-    }
+    protected virtual async Task OnBeforeActivate() => await Task.CompletedTask;
+    protected virtual async Task OnAfterActivate() => await Task.CompletedTask;
+    protected virtual async Task OnBeforeDeactivate() => await Task.CompletedTask;
+    protected virtual async Task OnAfterDeactivate() => await Task.CompletedTask;
 
     #endregion
 
     #region Event Handling
 
-    /// <summary>
-    /// イベントを購読
-    /// </summary>
-    protected virtual void SubscribeToEvents()
-    {
-      // Override in derived classes
-    }
-
-    /// <summary>
-    /// イベント購読を解除
-    /// </summary>
-    protected virtual void UnsubscribeFromEvents()
-    {
-      // Override in derived classes
-    }
+    protected virtual void SubscribeToEvents() { }
+    protected virtual void UnsubscribeFromEvents() { }
 
     #endregion
 
     #region Navigation
 
-    /// <summary>
-    /// 他のシーンへ遷移
-    /// </summary>
     protected virtual async Task NavigateToSceneAsync(string targetSceneName)
     {
       await DeactivateAsync();
       await SceneHelper.Instance.LoadSceneAsync(targetSceneName);
     }
 
-    /// <summary>
-    /// ホームへ戻る
-    /// </summary>
     public virtual async Task NavigateToHomeAsync()
     {
       await NavigateToSceneAsync(GameConstants.Scenes.Home);
     }
 
-    /// <summary>
-    /// 戻るボタンの処理
-    /// </summary>
     public virtual async Task OnBackButtonPressed()
     {
       await NavigateToHomeAsync();
@@ -408,12 +489,8 @@ namespace Scripts.Runtime.Views.Base
 
     #region Cleanup
 
-    /// <summary>
-    /// クリーンアップ
-    /// </summary>
     protected virtual void Cleanup()
     {
-      // Viewのクリーンアップ
       foreach (var view in views.Values)
       {
         if (view != null)

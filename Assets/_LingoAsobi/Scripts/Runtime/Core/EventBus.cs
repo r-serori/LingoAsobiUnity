@@ -12,7 +12,7 @@ namespace Scripts.Runtime.Core
         private static EventBus instance;
         private readonly Dictionary<Type, List<Delegate>> eventHandlers = new();
         private readonly object lockObject = new object();
-        
+
         /// <summary>
         /// シングルトンインスタンス（既存コードとの互換性のため維持）
         /// </summary>
@@ -27,22 +27,22 @@ namespace Scripts.Runtime.Core
                 return instance;
             }
         }
-        
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {
             CreateInstance();
         }
-        
+
         private static void CreateInstance()
         {
             if (instance != null) return;
-            
+
             GameObject go = new GameObject("EventBus");
             instance = go.AddComponent<EventBus>();
             DontDestroyOnLoad(go);
         }
-        
+
         private void Awake()
         {
             if (instance != null && instance != this)
@@ -50,11 +50,10 @@ namespace Scripts.Runtime.Core
                 Destroy(gameObject);
                 return;
             }
-            
+
             instance = this;
-            Debug.Log("[EventBus] Initialized");
         }
-        
+
         /// <summary>
         /// ハンドラーが存在するか確認
         /// </summary>
@@ -62,11 +61,11 @@ namespace Scripts.Runtime.Core
         {
             lock (lockObject)
             {
-                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
+                return eventHandlers.TryGetValue(typeof(T), out var handlers)
                     && handlers.Count > 0;
             }
         }
-        
+
         /// <summary>
         /// デバッグ用: 登録されているハンドラーの数を取得
         /// </summary>
@@ -74,18 +73,18 @@ namespace Scripts.Runtime.Core
         {
             lock (lockObject)
             {
-                return eventHandlers.TryGetValue(typeof(T), out var handlers) 
+                return eventHandlers.TryGetValue(typeof(T), out var handlers)
                     ? handlers.Count : 0;
             }
         }
-        
+
         /// <summary>
         /// イベントの購読（インスタンスメソッド版）
         /// </summary>
         public void Subscribe<T>(Action<T> handler) where T : IEvent
         {
             if (handler == null) return;
-            
+
             lock (lockObject)
             {
                 var type = typeof(T);
@@ -93,31 +92,29 @@ namespace Scripts.Runtime.Core
                 {
                     eventHandlers[type] = new List<Delegate>();
                 }
-                
+
                 // 重複登録を防ぐ
                 if (!eventHandlers[type].Contains(handler))
                 {
                     eventHandlers[type].Add(handler);
-                    Debug.Log($"[EventBus] Subscribed to {type.Name}. Total handlers: {eventHandlers[type].Count}");
                 }
             }
         }
-        
+
         /// <summary>
         /// イベントの購読解除（インスタンスメソッド版）
         /// </summary>
         public void Unsubscribe<T>(Action<T> handler) where T : IEvent
         {
             if (handler == null) return;
-            
+
             lock (lockObject)
             {
                 var type = typeof(T);
                 if (eventHandlers.TryGetValue(type, out var handlers))
                 {
                     handlers.Remove(handler);
-                    Debug.Log($"[EventBus] Unsubscribed from {type.Name}. Remaining handlers: {handlers.Count}");
-                    
+
                     // ハンドラーが0になったらリストを削除
                     if (handlers.Count == 0)
                     {
@@ -126,14 +123,14 @@ namespace Scripts.Runtime.Core
                 }
             }
         }
-        
+
         /// <summary>
         /// イベントの発行（インスタンスメソッド版）
         /// </summary>
         public void Publish<T>(T eventData) where T : IEvent
         {
             List<Delegate> handlersToInvoke = null;
-            
+
             lock (lockObject)
             {
                 var type = typeof(T);
@@ -143,11 +140,10 @@ namespace Scripts.Runtime.Core
                     handlersToInvoke = new List<Delegate>(handlers);
                 }
             }
-            
+
             if (handlersToInvoke != null && handlersToInvoke.Count > 0)
             {
-                Debug.Log($"[EventBus] Publishing {typeof(T).Name} to {handlersToInvoke.Count} handlers");
-                
+
                 foreach (var handler in handlersToInvoke)
                 {
                     try
@@ -165,7 +161,7 @@ namespace Scripts.Runtime.Core
                 Debug.LogWarning($"[EventBus] No handlers for event {typeof(T).Name}");
             }
         }
-        
+
         /// <summary>
         /// 全てのハンドラーをクリア（デバッグ/テスト用）
         /// </summary>
@@ -174,10 +170,9 @@ namespace Scripts.Runtime.Core
             lock (lockObject)
             {
                 eventHandlers.Clear();
-                Debug.Log("[EventBus] All handlers cleared");
             }
         }
-        
+
         private void OnDestroy()
         {
             if (instance == this)
@@ -185,9 +180,9 @@ namespace Scripts.Runtime.Core
                 instance = null;
             }
         }
-        
+
         // ===== 静的メソッド版（既存コードとの互換性のため） =====
-        
+
         /// <summary>
         /// 静的メソッド版のSubscribe（既存コードとの互換性）
         /// </summary>
@@ -195,7 +190,7 @@ namespace Scripts.Runtime.Core
         {
             Instance.Subscribe(handler);
         }
-        
+
         /// <summary>
         /// 静的メソッド版のUnsubscribe（既存コードとの互換性）
         /// </summary>
@@ -206,7 +201,7 @@ namespace Scripts.Runtime.Core
                 instance.Unsubscribe(handler);
             }
         }
-        
+
         /// <summary>
         /// 静的メソッド版のPublish（既存コードとの互換性）
         /// </summary>
@@ -215,7 +210,7 @@ namespace Scripts.Runtime.Core
             Instance.Publish(eventData);
         }
     }
-    
+
     /// <summary>
     /// イベントのベースインターフェース
     /// </summary>

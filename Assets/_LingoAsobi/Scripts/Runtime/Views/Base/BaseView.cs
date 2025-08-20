@@ -21,8 +21,8 @@ namespace Scripts.Runtime.Views.Base
     [SerializeField] protected float fadeOutDuration = 0.3f;
 
     // View状態
-    protected bool isInitialized = false;
-    protected bool isVisible = false;
+    public bool isInitialized = false;
+    public bool isVisible = false;
     protected bool isInteractable = true;
 
     // イベント
@@ -45,13 +45,13 @@ namespace Scripts.Runtime.Views.Base
         }
       }
 
-      // 初期状態を非表示に
-      SetVisibility(false, true);
+      // 初期状態を表示に変更（非表示ではなく）
+      SetVisibility(true, true);
     }
 
-    protected virtual void Start()
+    protected virtual async void Start()
     {
-      if (autoInitialize)
+      if (autoInitialize && !isInitialized)
       {
         Initialize();
       }
@@ -74,25 +74,19 @@ namespace Scripts.Runtime.Views.Base
     {
       if (isInitialized)
       {
-        Debug.LogWarning($"[{GetType().Name}] Already initialized");
         return;
       }
-
-      Debug.Log($"[{GetType().Name}] Initializing...");
 
       // UI要素の参照を取得
       GetUIReferences();
 
-      // イベントリスナーを設定
-      SetupEventListeners();
-
       // 初期データを設定
       SetupInitialData();
 
+      // イベントリスナーを設定
+      SetupEventListeners();
       isInitialized = true;
       OnViewInitialized?.Invoke();
-
-      Debug.Log($"[{GetType().Name}] Initialization complete");
     }
 
     /// <summary>
@@ -128,6 +122,7 @@ namespace Scripts.Runtime.Views.Base
     /// </summary>
     public virtual async Task ShowAsync()
     {
+
       if (!isInitialized)
       {
         Initialize();
@@ -135,17 +130,15 @@ namespace Scripts.Runtime.Views.Base
 
       if (isVisible)
       {
-        Debug.LogWarning($"[{GetType().Name}] Already visible");
         return;
       }
-
-      Debug.Log($"[{GetType().Name}] Showing view...");
 
       // 表示前の処理
       await OnBeforeShow();
 
       // フェードイン
       gameObject.SetActive(true);
+
       await UIHelper.FadeInAsync(canvasGroup, fadeInDuration);
 
       isVisible = true;
@@ -163,11 +156,8 @@ namespace Scripts.Runtime.Views.Base
     {
       if (!isVisible)
       {
-        Debug.LogWarning($"[{GetType().Name}] Already hidden");
         return;
       }
-
-      Debug.Log($"[{GetType().Name}] Hiding view...");
 
       // 非表示前の処理
       await OnBeforeHide();
@@ -287,7 +277,6 @@ namespace Scripts.Runtime.Views.Base
     /// </summary>
     public virtual async Task RefreshAsync()
     {
-      Debug.Log($"[{GetType().Name}] Refreshing data...");
 
       // データを再取得して表示を更新
       await LoadDataAsync();
@@ -367,7 +356,6 @@ namespace Scripts.Runtime.Views.Base
     /// </summary>
     protected virtual void ShowError(string message)
     {
-      Debug.LogError($"[{GetType().Name}] {message}");
       // TODO: UIでエラーを表示
     }
 

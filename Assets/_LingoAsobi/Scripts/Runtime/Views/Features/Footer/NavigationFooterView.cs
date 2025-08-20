@@ -10,6 +10,7 @@ using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Utilities.Helpers;
 using Scripts.Runtime.Utilities.Constants;
+using UnityEngine.PlayerLoop;
 
 namespace Scripts.Runtime.Views.Features.Footer
 {
@@ -25,25 +26,20 @@ namespace Scripts.Runtime.Views.Features.Footer
     [SerializeField] private Button shopButton;
     [SerializeField] private Button trainingButton;
 
-     protected override void SetupEventListeners()
+    protected override void SetupEventListeners()
     {
-        base.SetupEventListeners();
+      base.SetupEventListeners();
 
-        // ボタンのイベントリスナーを設定
-        if (homeButton != null)
-            homeButton.onClick.AddListener(OnHomeButtonClicked);
-        
-        if (characterButton != null)
-            characterButton.onClick.AddListener(OnCharacterButtonClicked);
-        
-        if (gachaButton != null)
-            gachaButton.onClick.AddListener(OnGachaButtonClicked);
-        
-        if (shopButton != null)
-            shopButton.onClick.AddListener(OnShopButtonClicked);
-        
-        if (trainingButton != null)
-            trainingButton.onClick.AddListener(OnTrainingButtonClicked);
+      // ボタンのイベントリスナーを設定
+      homeButton.onClick?.AddListener(OnHomeButtonClicked);
+
+      characterButton.onClick?.AddListener(OnCharacterButtonClicked);
+
+      gachaButton.onClick?.AddListener(OnGachaButtonClicked);
+
+      shopButton.onClick?.AddListener(OnShopButtonClicked);
+
+      trainingButton.onClick?.AddListener(OnTrainingButtonClicked);
     }
 
     /// <summary>
@@ -59,31 +55,26 @@ namespace Scripts.Runtime.Views.Features.Footer
 
     private async void OnHomeButtonClicked()
     {
-      Debug.Log("[NavigationFooterView] Home button clicked");
       await NavigateToSceneAsync(GameConstants.Scenes.Home);
     }
 
     private async void OnCharacterButtonClicked()
     {
-      Debug.Log("[NavigationFooterView] Character button clicked");
       await NavigateToSceneAsync(GameConstants.Scenes.Character);
     }
 
     private async void OnShopButtonClicked()
     {
-      Debug.Log("[NavigationFooterView] Shop button clicked");
       await NavigateToSceneAsync(GameConstants.Scenes.Shop);
     }
-  
+
     private async void OnGachaButtonClicked()
     {
-      Debug.Log("[NavigationFooterView] Gacha button clicked");
       await NavigateToSceneAsync(GameConstants.Scenes.Gacha);
     }
 
     private async void OnTrainingButtonClicked()
     {
-      Debug.Log("[NavigationFooterView] Training button clicked");
       await NavigateToSceneAsync(GameConstants.Scenes.Training);
     }
 

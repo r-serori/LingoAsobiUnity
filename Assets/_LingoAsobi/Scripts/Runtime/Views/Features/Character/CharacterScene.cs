@@ -37,30 +37,30 @@ namespace Scripts.Runtime.Views.Features.Character
       }
     }
 
-    protected override void InitializeViews()
-    {
-      base.InitializeViews();
+    // protected override void SetupEventListeners()
+    // {
+    //   base.SetupEventListeners();
 
-      // ボタンのイベントを設定
-      if (backButton != null)
-        backButton.onClick.AddListener(() => _ = OnBackButtonPressed());
+    //   // ボタンのイベントを設定
+    //   if (backButton != null)
+    //     backButton.onClick.AddListener(() => _ = OnBackButtonPressed());
 
-      // トグルのイベントを設定
-      if (showAllToggle != null)
-        showAllToggle.onValueChanged.AddListener(OnFilterChanged);
+    //   // トグルのイベントを設定
+    //   if (showAllToggle != null)
+    //     showAllToggle.onValueChanged.AddListener(OnFilterChanged);
 
-      if (showUnlockedToggle != null)
-        showUnlockedToggle.onValueChanged.AddListener(OnFilterChanged);
+    //   if (showUnlockedToggle != null)
+    //     showUnlockedToggle.onValueChanged.AddListener(OnFilterChanged);
 
-      if (showFavoriteToggle != null)
-        showFavoriteToggle.onValueChanged.AddListener(OnFilterChanged);
+    //   if (showFavoriteToggle != null)
+    //     showFavoriteToggle.onValueChanged.AddListener(OnFilterChanged);
 
-      // リストビューのイベントを設定
-      if (characterListView != null)
-      {
-        characterListView.OnCharacterSelected += OnCharacterSelected;
-      }
-    }
+    //   // リストビューのイベントを設定
+    //   if (characterListView != null)
+    //   {
+    //     characterListView.OnCharacterSelected += OnCharacterSelected;
+    //   }
+    // }
 
     #endregion
 
@@ -85,7 +85,6 @@ namespace Scripts.Runtime.Views.Features.Character
     {
       selectedCharacter = character;
 
-      Debug.Log($"[CharacterScene] Character selected: {character.characterName}");
 
       // 詳細ビューを表示
       if (characterDetailView != null)
@@ -185,7 +184,6 @@ namespace Scripts.Runtime.Views.Features.Character
     private void ShowCharacterUnlockEffect(string characterId)
     {
       // TODO: 解放演出を実装
-      Debug.Log($"[CharacterScene] Character unlocked: {characterId}");
     }
 
     #endregion

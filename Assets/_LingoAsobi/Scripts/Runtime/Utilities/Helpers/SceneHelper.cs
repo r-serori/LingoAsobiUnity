@@ -78,7 +78,7 @@ namespace Scripts.Runtime.Utilities.Helpers
     }
 
     /// <summary>
-    /// 非同期でシーンをロード（改善版）
+    /// 非同期でシーンをロード（高速版）
     /// </summary>
     public async Task<bool> LoadSceneAsync(string sceneName, bool additive = false)
     {
@@ -97,6 +97,10 @@ namespace Scripts.Runtime.Utilities.Helpers
       try
       {
         isTransitioning = true;
+
+        // フェードを無効化（真っ暗にならない）
+        // CreateFadeCanvas();
+        // await FadeOut();
 
         // GameEventManagerとEventBusの確認
         EnsureEventManagerExists();
@@ -131,7 +135,8 @@ namespace Scripts.Runtime.Utilities.Helpers
           // 90%まで読み込まれたらシーンをアクティベート
           if (loadOperation.progress >= 0.9f)
           {
-            await Task.Delay(100); // 少し待機（フェード演出などのため）
+            // 待機時間を短縮
+            await Task.Delay(10); // 100ms → 10ms
             loadOperation.allowSceneActivation = true;
           }
 
@@ -142,7 +147,9 @@ namespace Scripts.Runtime.Utilities.Helpers
         EventBus.Instance.Publish(new SceneTransitionEvent(sceneName,
             SceneTransitionEvent.TransitionPhase.Completed));
 
-        Debug.Log($"[SceneHelper] Successfully loaded scene: {sceneName}");
+        // フェードを無効化（真っ暗にならない）
+        // await FadeIn();
+
         return true;
       }
       catch (Exception e)
@@ -152,6 +159,9 @@ namespace Scripts.Runtime.Utilities.Helpers
         // 失敗イベントを発行
         EventBus.Instance.Publish(new SceneTransitionEvent(sceneName,
             SceneTransitionEvent.TransitionPhase.Failed));
+
+        // エラー時もフェードインを無効化
+        // await FadeIn();
 
         return false;
       }
@@ -169,8 +179,6 @@ namespace Scripts.Runtime.Utilities.Helpers
       var manager = GameEventManager.Instance;
       var eventBus = EventBus.Instance;
 
-      Debug.Log($"[SceneHelper] Managers ready - GameEventManager: {manager != null}, EventBus: {eventBus != null}");
-      Debug.Log($"[SceneHelper] SceneTransitionEvent handlers registered: {eventBus.GetHandlerCount<SceneTransitionEvent>()}");
     }
 
     /// <summary>
@@ -221,7 +229,9 @@ namespace Scripts.Runtime.Utilities.Helpers
     {
       if (_fadeCanvasGroup == null) return;
 
-      float duration = GameConstants.Animation.SceneTransitionDuration;
+      _fadeCanvasGroup.blocksRaycasts = true;
+      // フェード時間を短縮（0.1秒）
+      float duration = 0.1f;
       float elapsed = 0;
 
       while (elapsed < duration)
@@ -246,7 +256,6 @@ namespace Scripts.Runtime.Utilities.Helpers
         await Task.Yield();
       }
 
-      Debug.Log($"[SceneHelper] Additive scene loaded: {sceneName}");
     }
 
     /// <summary>
@@ -256,7 +265,8 @@ namespace Scripts.Runtime.Utilities.Helpers
     {
       if (_fadeCanvasGroup == null) return;
 
-      float duration = GameConstants.Animation.SceneTransitionDuration;
+      // フェード時間を短縮（0.1秒）
+      float duration = 0.1f;
       float elapsed = 0;
 
       while (elapsed < duration)
@@ -267,6 +277,7 @@ namespace Scripts.Runtime.Utilities.Helpers
       }
 
       _fadeCanvasGroup.alpha = 0;
+      _fadeCanvasGroup.blocksRaycasts = false;
     }
 
     /// <summary>
@@ -297,7 +308,6 @@ namespace Scripts.Runtime.Utilities.Helpers
           await Task.Yield();
         }
 
-        Debug.Log($"[SceneHelper] Scene unloaded: {sceneName}");
       }
     }
 
@@ -329,7 +339,7 @@ namespace Scripts.Runtime.Utilities.Helpers
 
       _fadeCanvasGroup = _fadeCanvas.AddComponent<CanvasGroup>();
       _fadeCanvasGroup.alpha = 0;
-      _fadeCanvasGroup.blocksRaycasts = true;
+      _fadeCanvasGroup.blocksRaycasts = false; // ← 初期はブロックしない
 
       // 黒い背景を追加
       GameObject bg = new GameObject("Background");

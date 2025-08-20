@@ -104,7 +104,6 @@ namespace Scripts.Runtime.Utilities
         OptimizeGraphicRaycasters();
       }
 
-      Debug.Log("PerformanceOptimizer: 初期化完了");
     }
 
     /// <summary>
@@ -133,7 +132,6 @@ namespace Scripts.Runtime.Utilities
           // リソース解放
           Resources.UnloadUnusedAssets();
 
-          Debug.Log("PerformanceOptimizer: メモリクリーンアップ実行");
         }
       }
     }
@@ -174,9 +172,9 @@ namespace Scripts.Runtime.Utilities
     /// </summary>
     private void LogPerformanceStats()
     {
-      Debug.Log($"Performance Stats - Memory: {currentStats.usedMemoryBytes / (1024 * 1024)}MB " +
-               $"({currentStats.memoryUsagePercent:F1}%), FPS: {currentStats.frameRate}, " +
-               $"Objects: {currentStats.activeGameObjects}");
+      // Debug.Log($"PerformanceOptimizer: メモリ使用量: {currentStats.usedMemoryBytes / (1024 * 1024)}MB " +
+      //          $"({currentStats.memoryUsagePercent:F1}%), FPS: {currentStats.frameRate}, " +
+      //          $"Objects: {currentStats.activeGameObjects}, DeltaTime: {currentStats.deltaTime}");
     }
 
     /// <summary>
@@ -198,7 +196,6 @@ namespace Scripts.Runtime.Utilities
         }
       }
 
-      Debug.Log($"PerformanceOptimizer: {canvases.Length}個のCanvasを最適化");
     }
 
     /// <summary>
@@ -217,7 +214,6 @@ namespace Scripts.Runtime.Utilities
         }
       }
 
-      Debug.Log($"PerformanceOptimizer: {raycasters.Length}個のGraphicRaycasterを最適化");
     }
 
     /// <summary>
@@ -318,7 +314,6 @@ namespace Scripts.Runtime.Utilities
       System.GC.WaitForPendingFinalizers();
       Resources.UnloadUnusedAssets();
 
-      Debug.Log("PerformanceOptimizer: 手動メモリクリーンアップ実行");
     }
 
     /// <summary>
@@ -363,7 +358,6 @@ namespace Scripts.Runtime.Utilities
         }
       }
 
-      Debug.Log($"PerformanceOptimizer: {(enabled ? "有効" : "無効")}に設定");
     }
 
     void OnDestroy()

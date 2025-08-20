@@ -6,6 +6,8 @@ using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Data.Models.User;
 using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Cache;
+using Scripts.Runtime.Data.Models.Training;
+using Scripts.Runtime.Data.Models.Grammar;
 
 namespace Scripts.Runtime.Core
 {
@@ -35,7 +37,8 @@ namespace Scripts.Runtime.Core
     // リポジトリ
     private UserRepository _userRepository;
     private CharacterRepository _characterRepository;
-
+    private TrainingRepository _trainingRepository;
+    private GrammarRepository _grammarRepository;
     // データキャッシュ
     private DataCache _cache;
 
@@ -73,6 +76,10 @@ namespace Scripts.Runtime.Core
         _userRepository = UserRepository.Instance;
 
         _characterRepository = CharacterRepository.Instance;
+
+        _trainingRepository = TrainingRepository.Instance;
+
+        _grammarRepository = GrammarRepository.Instance;
 
         _cache = DataCache.Instance;
       }
@@ -154,6 +161,8 @@ namespace Scripts.Runtime.Core
       // 一括データ取得（本番環境では専用のBulk APIを使用）
       var tasks = new List<Task>
       {
+        _trainingRepository.GetTrainingDataAsync(),
+        _grammarRepository.GetAllAsync(),
         // 今後追加するリポジトリのデータ読み込み
         // _shopRepository.GetAllAsync(),
         // _questRepository.GetAllAsync(),
@@ -198,7 +207,7 @@ namespace Scripts.Runtime.Core
     /// <summary>
     /// キャラクターデータを取得
     /// </summary>
-    public async Task<CharacterData> GetCharacterAsync(string characterId)
+    public async Task<CharacterData> GetCharacterByIdAsync(string characterId)
     {
       return await _characterRepository.GetByIdAsync(characterId);
     }
@@ -220,13 +229,28 @@ namespace Scripts.Runtime.Core
     }
 
     /// <summary>
+    /// トレーニングデータを取得
+    /// </summary>
+    public async Task<TrainingData> GetTrainingDataAsync()
+    {
+      return await _trainingRepository.GetTrainingDataAsync();
+    }
+
+    /// <summary>
+    /// 文法データを取得
+    /// </summary>
+    public async Task<List<GrammarData>> GetGrammarAllDataAsync()
+    {
+      return await _grammarRepository.GetAllAsync();
+    }
+
+    /// <summary>
     /// データを同期
     /// </summary>
     public async Task SyncDataAsync()
     {
       try
       {
-        Debug.Log("[DataManager] Starting data sync...");
 
         // キャッシュをクリア
         _cache.ClearAll();
@@ -234,7 +258,6 @@ namespace Scripts.Runtime.Core
         // 最新データを取得
         await InitializeAsync();
 
-        Debug.Log("[DataManager] Data sync complete");
       }
       catch (Exception e)
       {
@@ -252,7 +275,6 @@ namespace Scripts.Runtime.Core
       _cache.ClearAll();
       _isInitialized = false;
 
-      Debug.Log("[DataManager] User logged out and data cleared");
     }
 
     /// <summary>
@@ -288,7 +310,6 @@ namespace Scripts.Runtime.Core
     {
       // 重要なデータをPlayerPrefsに保存
       PlayerPrefs.Save();
-      Debug.Log("[DataManager] Local data saved");
     }
 
     /// <summary>
@@ -305,13 +326,8 @@ namespace Scripts.Runtime.Core
     [ContextMenu("Print Debug Info")]
     public void PrintDebugInfo()
     {
-      Debug.Log("=== DataManager Debug Info ===");
-      Debug.Log($"Initialized: {_isInitialized}");
 
       var stats = GetCacheStatistics();
-      Debug.Log($"Cache entries: {stats.TotalEntries}");
-      Debug.Log($"Cache size: {stats.TotalSize / 1024f:F2} KB");
-      Debug.Log($"Oldest entry age: {stats.OldestEntryAge.TotalMinutes:F1} minutes");
     }
   }
 }

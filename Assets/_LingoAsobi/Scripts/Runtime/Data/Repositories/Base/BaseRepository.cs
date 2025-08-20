@@ -48,7 +48,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
       var cached = _cache.Get<T>(cacheKey);
       if (cached != null)
       {
-        Debug.Log($"[{GetType().Name}] Cache hit for key: {cacheKey}");
         return cached;
       }
 
@@ -147,7 +146,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
       }
       */
 
-      Debug.Log($"[{GetType().Name}] Mock: Entity created");
       ClearCache();
       return entity;
     }
@@ -178,7 +176,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
       }
       */
 
-      Debug.Log($"[{GetType().Name}] Mock: Entity updated");
       ClearCache();
       return true;
     }
@@ -208,7 +205,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
       }
       */
 
-      Debug.Log($"[{GetType().Name}] Mock: Entity deleted - ID: {id}");
       ClearCache();
       return true;
     }
@@ -228,7 +224,6 @@ namespace Scripts.Runtime.Data.Repositories.Base
     public virtual void ClearCache()
     {
       _cache.ClearByPrefix(CacheKeyPrefix);
-      Debug.Log($"[{GetType().Name}] Cache cleared");
     }
 
     #region Mock Data Methods (開発用)
@@ -242,6 +237,11 @@ namespace Scripts.Runtime.Data.Repositories.Base
     /// MockDataから全件取得（サブクラスで実装）
     /// </summary>
     protected abstract Task<List<T>> GetAllMockDataAsync();
+
+    /// <summary>
+    /// MockDataから1件取得（サブクラスで実装）
+    /// </summary>
+    protected abstract Task<T> GetMockDataAsync();
 
     #endregion
   }

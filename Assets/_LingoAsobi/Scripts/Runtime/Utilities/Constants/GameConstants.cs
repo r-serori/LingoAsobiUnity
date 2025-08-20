@@ -24,12 +24,15 @@ namespace Scripts.Runtime.Utilities.Constants
       public const string Grammar = "GrammarScene";
       public const string Pronunciation = "PronunciationScene";
       public const string Vocabulary = "VocabularyScene";
+      public const string Conversation = "ConversationScene";
+      public const string Speaking = "SpeakingScene";
       public const string Login = "LoginScene";
       public const string Register = "RegisterScene";
       public const string Battle = "BattleScene";
       public const string Inventory = "InventoryScene";
       public const string Settings = "SettingsScene";
       public const string Loading = "LoadingScene";
+      public const string Result = "ResultScene";
     }
 
     #endregion

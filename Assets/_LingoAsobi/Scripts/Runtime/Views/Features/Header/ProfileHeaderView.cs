@@ -36,8 +36,8 @@ namespace Scripts.Runtime.Views.Features.Header
     [SerializeField] private Image staminaBarMax;
 
     [Header("Effects")]
-    [SerializeField] private GameObject levelUpEffectPrefab;
-    [SerializeField] private Transform effectContainer;
+    // [SerializeField] private GameObject levelUpEffectPrefab;
+    // [SerializeField] private Transform effectContainer;
 
     private UserProfile currentUser;
     private CharacterData currentCharacter;
@@ -68,6 +68,11 @@ namespace Scripts.Runtime.Views.Features.Header
         expBarMax.color = Color.clear;
       }
 
+      if (profileImage != null)
+      {
+        profileImage.sprite = Resources.Load<Sprite>(currentUser.userIconUrl);
+      }
+
       // 通貨
       UpdateCurrencyDisplay();
 
@@ -92,14 +97,14 @@ namespace Scripts.Runtime.Views.Features.Header
 
     public void ShowLevelUpEffect(int newLevel)
     {
-      if (levelUpEffectPrefab != null && effectContainer != null)
-      {
-        var effect = Instantiate(levelUpEffectPrefab, effectContainer);
-        effect.GetComponent<TextMeshProUGUI>().text = $"+{newLevel}";
-        Destroy(effect, 1f);
-      }
+      // if (levelUpEffectPrefab != null && effectContainer != null)
+      // {
+      //   var effect = Instantiate(levelUpEffectPrefab, effectContainer);
+      //   effect.GetComponent<TextMeshProUGUI>().text = $"+{newLevel}";
+      //   Destroy(effect, 1f);
+      // }
     }
-  
+
     public void OnLevelUp(LevelUpEvent e)
     {
       // レベルアップ演出を表示
@@ -180,8 +185,8 @@ namespace Scripts.Runtime.Views.Features.Header
 
     #region Helper Methods
 
-  
+
     #endregion
-    }
+  }
 }
 

@@ -61,7 +61,6 @@ namespace Scripts.Runtime.Services
       _instance = this;
       DontDestroyOnLoad(gameObject);
 
-      Debug.Log("UserManager Singleton 初期化完了");
     }
 
     /// <summary>
@@ -95,7 +94,6 @@ namespace Scripts.Runtime.Services
 
           if (enableDebugLogs)
           {
-            Debug.Log($"UserManager: ユーザーデータ読み込み完了 - {currentUser.userName}");
           }
 
           // 初期データ読み込み完了イベント

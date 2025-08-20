@@ -56,7 +56,6 @@ namespace Scripts.Runtime.Managers
             _instance = this;
             DontDestroyOnLoad(gameObject);
 
-            Debug.Log("PerformanceResourceManager Singleton 初期化完了");
         }
 
         /// <summary>
@@ -148,7 +147,6 @@ namespace Scripts.Runtime.Managers
             spriteCache.Clear();
             cacheOrder.Clear();
 
-            Debug.Log("PerformanceResourceManager: キャッシュをクリアしました");
         }
 
         /// <summary>
@@ -177,7 +175,6 @@ namespace Scripts.Runtime.Managers
         [ContextMenu("Show Cache Stats")]
         private void ShowCacheStats()
         {
-            Debug.Log($"PerformanceResourceManager Stats: {GetCacheStats()}");
         }
     }
 }

@@ -299,10 +299,21 @@ MonoBehaviour:
   autoInitialize: 1
   fadeInDuration: 0.3
   fadeOutDuration: 0.3
-  continueDataButton: {fileID: 1493772186}
-  settingsButton: {fileID: 1925262280}
-  noticeButton: {fileID: 238837776}
+  titleText: {fileID: 1183776333}
+  subtitleText: {fileID: 0}
+  versionText: {fileID: 0}
+  copyrightText: {fileID: 0}
   startButton: {fileID: 1578006300}
+  continueButton: {fileID: 1493772186}
+  settingsButton: {fileID: 1925262280}
+  creditsButton: {fileID: 0}
+  quitButton: {fileID: 0}
+  mainMenuContainer: {fileID: 0}
+  buttonContainer: {fileID: 0}
+  backgroundImage: {fileID: 1838082315}
+  backgroundParticles: {fileID: 0}
+  titleAnimationDelay: 0.5
+  buttonStaggerDelay: 0.1
 --- !u!225 &321015011
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -364,7 +375,6 @@ MonoBehaviour:
   autoInitialize: 1
   mainCanvas: {fileID: 1391753244}
   uiCamera: {fileID: 1760899075}
-  titleView: {fileID: 321015010}
 --- !u!1 &586000152
 GameObject:
   m_ObjectHideFlags: 0

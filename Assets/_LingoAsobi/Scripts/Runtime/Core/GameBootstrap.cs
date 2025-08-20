@@ -62,11 +62,11 @@ namespace Scripts.Runtime.Core
 
     private async void Start()
     {
-        // 全ての必須マネージャーを初期化
-        InitializeManagers();
-        
-        // 既存の初期化処理
-        await StartInitialization();
+      // 全ての必須マネージャーを初期化
+      InitializeManagers();
+
+      // 既存の初期化処理
+      await StartInitialization();
     }
 
     private void OnApplicationPause(bool pauseStatus)
@@ -190,21 +190,21 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void InitializeManagers()
     {
-        // コアマネージャーの初期化と確認
-        var eventBus = EventBus.Instance;
-        var eventRegistry = GameEventHandlerRegistry.Instance;
-        var sceneHelper = SceneHelper.Instance;
-        var dataManager = DataManager.Instance;
-        
-        // デバッグモードの場合、デバッガーを追加
-      #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        if (GameObject.Find("EventBusDebugger") == null)
-        {
-          GameObject debuggerGo = new GameObject("EventBusDebugger");
-          debuggerGo.AddComponent<EventBusDebugger>();
-          DontDestroyOnLoad(debuggerGo);
-        }
-      #endif
+      // コアマネージャーの初期化と確認
+      var eventBus = EventBus.Instance;
+      var eventRegistry = GameEventHandlerRegistry.Instance;
+      var sceneHelper = SceneHelper.Instance;
+      var dataManager = DataManager.Instance;
+
+      // デバッグモードの場合、デバッガーを追加
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+      if (GameObject.Find("EventBusDebugger") == null)
+      {
+        GameObject debuggerGo = new GameObject("EventBusDebugger");
+        debuggerGo.AddComponent<EventBusDebugger>();
+        DontDestroyOnLoad(debuggerGo);
+      }
+#endif
     }
 
     /// <summary>
@@ -319,12 +319,6 @@ namespace Scripts.Runtime.Core
         await Task.Delay((int)(splashScreenDuration * 1000));
         return;
       }
-
-      // ① UIHelperでフェードインさせる
-      await UIHelper.FadeInAsync(splashScreenCanvasGroup, 0.5f); // 0.5秒かけてフェードイン
-
-      // ③ UIHelperでフェードアウトさせる
-      await UIHelper.FadeOutAsync(splashScreenCanvasGroup, 0.5f); // 0.5秒かけてフェードアウト
     }
 
     private async Task TransitionToInitialScene()
@@ -332,19 +326,19 @@ namespace Scripts.Runtime.Core
       bool success = await SceneHelper.Instance.LoadSceneAsync(initialSceneName, false);
       if (!success)
       {
-          // フォールバックシーンへの遷移
-          await HandleSceneLoadFailure(initialSceneName);
+        // フォールバックシーンへの遷移
+        await HandleSceneLoadFailure(initialSceneName);
       }
     }
 
     private async Task HandleSceneLoadFailure(string failedScene)
     {
-        // エラー画面への遷移など
-        string errorScene = "ErrorScene";
-        if (SceneHelper.Instance.SceneExists(errorScene))
-        {
-            await SceneHelper.Instance.LoadSceneAsync(errorScene, false);
-        }
+      // エラー画面への遷移など
+      string errorScene = "ErrorScene";
+      if (SceneHelper.Instance.SceneExists(errorScene))
+      {
+        await SceneHelper.Instance.LoadSceneAsync(errorScene, false);
+      }
     }
 
     #endregion
@@ -398,7 +392,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void OnApplicationGoToBackground()
     {
-      Debug.Log("[GameBootstrap] Application went to background");
       SaveGameState();
     }
 
@@ -407,7 +400,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void OnApplicationComeToForeground()
     {
-      Debug.Log("[GameBootstrap] Application came to foreground");
 
       // データの同期
       _ = DataManager.Instance.SyncDataAsync();
@@ -418,7 +410,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void SaveGameState()
     {
-      Debug.Log("[GameBootstrap] Saving game state...");
 
       // PlayerPrefsの保存
       PlayerPrefs.Save();
@@ -462,7 +453,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     private void Cleanup()
     {
-      Debug.Log("[GameBootstrap] Cleaning up...");
 
       // イベントの購読解除
       EventBus.Instance.ClearAll();
@@ -481,7 +471,6 @@ namespace Scripts.Runtime.Core
     /// </summary>
     public async Task RestartGame()
     {
-      Debug.Log("[GameBootstrap] Restarting game...");
 
       // データをクリア
       DataManager.Instance.Logout();
