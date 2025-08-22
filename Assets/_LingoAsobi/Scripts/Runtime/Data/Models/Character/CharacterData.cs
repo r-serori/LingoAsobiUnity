@@ -3,6 +3,17 @@ using UnityEngine;
 
 namespace Scripts.Runtime.Data.Models.Character
 {
+
+  public enum CharacterAttribute
+  {
+    Fire,
+    Water,
+    Wood,
+    Light,
+    Dark,
+    Neutral,
+  }
+
   /// <summary>
   /// キャラクターデータモデル
   /// ゲーム内のキャラクター情報を管理
@@ -14,6 +25,7 @@ namespace Scripts.Runtime.Data.Models.Character
     public string characterId;
     public string characterName;
     public string description;
+    public CharacterAttribute attribute;
 
     [Header("画像リソース")]
     public string portraitImagePath;      // 立ち絵

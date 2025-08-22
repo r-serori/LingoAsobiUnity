@@ -22,6 +22,8 @@ namespace Scripts.Runtime.Utilities.Constants
       public const string Gacha = "GachaScene";
       public const string Training = "TrainingScene";
       public const string Grammar = "GrammarScene";
+      public const string GrammarTower = "GrammarTowerScene";
+      public const string GrammarFloor = "GrammarFloorScene";
       public const string Pronunciation = "PronunciationScene";
       public const string Vocabulary = "VocabularyScene";
       public const string Conversation = "ConversationScene";

@@ -125,6 +125,15 @@ namespace Scripts.Runtime.Data.Repositories
       return true;
     }
 
+    /// <summary>
+    /// キャラクターを複数取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetCharactersByIdsAsync(List<string> characterIds)
+    {
+      var characters = await GetAllAsync();
+      return characters.Where(c => characterIds.Contains(c.characterId)).ToList();
+    }
+
     #region Mock Data Implementation
 
     /// <summary>
@@ -159,6 +168,7 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_001",
                     characterName = "キャラ1",
                     description = "キャラ1です。文法が得意。",
+                    attribute = CharacterAttribute.Fire,
                     portraitImagePath = "Characters/ex_character1",
                     fullBodyImagePath = "Characters/ex_character1",
                     avatarImagePath = "Characters/ex_character1",
@@ -184,6 +194,7 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_002",
                     characterName = "キャラ2",
                     description = "キャラ2です。リスニングが得意。",
+                    attribute = CharacterAttribute.Water,
                     portraitImagePath = "Characters/ex_character2",
                     fullBodyImagePath = "Characters/ex_character2",
                     avatarImagePath = "Characters/ex_character2",
@@ -209,6 +220,7 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_003",
                     characterName = "キャラ3",
                     description = "キャラ3です。スピーキングが得意。",
+                    attribute = CharacterAttribute.Wood,
                     portraitImagePath = "Characters/ex_character3",
                     fullBodyImagePath = "Characters/ex_character3",
                     avatarImagePath = "Characters/ex_character3",
@@ -234,6 +246,7 @@ namespace Scripts.Runtime.Data.Repositories
                     characterId = "char_004",
                     characterName = "キャラ4",
                     description = "キャラ4です。総合力が高い。",
+                    attribute = CharacterAttribute.Light,
                     portraitImagePath = "Characters/ex_character4",
                     fullBodyImagePath = "Characters/ex_character4",
                     avatarImagePath = "Characters/ex_character4",
@@ -241,7 +254,7 @@ namespace Scripts.Runtime.Data.Repositories
                     defaultAnimation = AnimationType.Victory,
                     animationSpeed = 1.5f,
                     enableRandomAnimation = true,
-                    rarity = Rarity.Common,
+                    rarity = Rarity.Legendary,
                     level = 1,
                     stats = new CharacterStats
                     {

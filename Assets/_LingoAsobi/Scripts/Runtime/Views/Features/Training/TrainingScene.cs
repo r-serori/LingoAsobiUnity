@@ -10,6 +10,7 @@ using Scripts.Runtime.Views.Features.Footer;
 using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Data.Models.Training;
+using Scripts.Runtime.Views.ViewData.Training;
 
 namespace Scripts.Runtime.Views.Features.Training
 {
@@ -35,8 +36,7 @@ namespace Scripts.Runtime.Views.Features.Training
       currentUser = await DataManager.Instance.GetCurrentUserAsync();
       trainingData = await DataManager.Instance.GetTrainingDataAsync();
 
-      trainingView.SetUserData(currentUser);
-      trainingView.SetTrainingData(trainingData);
+      trainingView.SetViewData(new TrainingViewData(currentUser, trainingData));
     }
 
     #endregion
@@ -46,9 +46,6 @@ namespace Scripts.Runtime.Views.Features.Training
     protected override async Task OnAfterActivate()
     {
       await base.OnAfterActivate();
-
-
-      // Viewの表示状態を確認
 
       // 既に表示されている場合は何もしない
       if (trainingView.isVisible && navigationFooterView.isVisible)

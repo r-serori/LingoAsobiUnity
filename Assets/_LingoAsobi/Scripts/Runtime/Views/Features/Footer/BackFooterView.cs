@@ -79,6 +79,7 @@ namespace Scripts.Runtime.Views.Features.Footer
         GameConstants.Scenes.Shop => GameConstants.Scenes.Home,
         GameConstants.Scenes.Training => GameConstants.Scenes.Home,
         GameConstants.Scenes.Grammar or GameConstants.Scenes.Pronunciation or GameConstants.Scenes.Vocabulary or GameConstants.Scenes.Conversation or GameConstants.Scenes.Speaking => GameConstants.Scenes.Training,
+        GameConstants.Scenes.GrammarTower => GameConstants.Scenes.Grammar,
         GameConstants.Scenes.Result => GameConstants.Scenes.Training,
         _ => GameConstants.Scenes.Home,
       };

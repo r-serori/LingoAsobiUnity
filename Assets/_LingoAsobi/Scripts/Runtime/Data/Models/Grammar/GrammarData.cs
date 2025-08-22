@@ -15,21 +15,23 @@ namespace Scripts.Runtime.Data.Models.Grammar
     public string title;
     public int order;
     public string description;
-    public List<GrammarFloor> floors;
+    public int lastCorrectedFloorOrder;
+    public List<GrammarFloorData> floors;
   }
 
   [Serializable]
-  public class GrammarFloor
+  public class GrammarFloorData
   {
     public int id;
     public string title;
     public string description;
     public int order;
-    public List<GrammarLesson> lessons;
+    public int lastCorrectedLessonOrder;
+    public List<GrammarLessonData> lessons;
   }
 
   [Serializable]
-  public class GrammarLesson
+  public class GrammarLessonData
   {
     public int id;
     public string title;
@@ -37,11 +39,11 @@ namespace Scripts.Runtime.Data.Models.Grammar
     public string examples;
     public string explanation;
     public int order;
-    public List<GrammarQuestion> questions;
+    public List<GrammarQuestionData> questions;
   }
 
   [Serializable]
-  public class GrammarQuestion
+  public class GrammarQuestionData
   {
     public int id;
     public string title;

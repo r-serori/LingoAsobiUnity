@@ -109,6 +109,11 @@ InitTestScene*.unity*
 [Ll]ogs/                   # Unity エディターのログファイル
 [Mm]emoryCaptures/         # メモリプロファイラーのキャプチャファイル
 
+/[Aa]ssets/*/.DS_Store
+/[Aa]ssets/*/*/.DS_Store
+/[Aa]ssets/*/*/*/.DS_Store
+/[Aa]ssets/*/*/*/*/.DS_Store
+
 # ===== Visual Studio関連 =====
 .vs/                       # Visual Studioの設定フォルダ
 *.sln                      # ソリューションファイル（自動生成される）
@@ -122,7 +127,11 @@ Desktop.ini               # フォルダ設定ファイル
 *.stackdump               # Windowsクラッシュダンプ
 
 # macOS
-.DS_Store                 # macOSのフォルダ設定
+*.DS_Store
+.DS_Store
+*/.DS_Store
+*/*/.DS_Store
+# macOSのフォルダ設定
 .AppleDouble
 .LSOverride
 Icon?
@@ -197,3 +206,7 @@ UnityEngine.Cloud.Analytics/
 /[Aa]ssets/*_ThirdParty*/*/*/*.meta
 /[Aa]ssets/*_ThirdParty*/*/*/*/*.meta
 /[Aa]ssets/*_ThirdParty*/*
+
+.DS_Store
+*/.DS_Store
+*/*/.DS_Store

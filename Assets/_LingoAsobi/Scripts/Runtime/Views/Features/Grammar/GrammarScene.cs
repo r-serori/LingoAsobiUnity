@@ -12,6 +12,7 @@ using Scripts.Runtime.Data.Repositories;
 using Scripts.Runtime.Data.Models.Training;
 using System.Collections.Generic;
 using Scripts.Runtime.Data.Models.Grammar;
+using Scripts.Runtime.Views.ViewData.Grammar;
 
 namespace Scripts.Runtime.Views.Features.Grammar
 {
@@ -21,65 +22,23 @@ namespace Scripts.Runtime.Views.Features.Grammar
   /// </summary>
   public class GrammarScene : BaseScene
   {
-    [Header("Training Scene References")]
+    [Header("Grammar Scene References")]
     [SerializeField] private GrammarView grammarView;
     [SerializeField] private BackFooterView backFooterView;
 
     private UserProfile currentUser;
-    private List<GrammarData> grammarData;
+    private List<GrammarData> grammarDataList;
 
     #region Initialization
 
-    private async void Start()
-    {
-      Debug.Log("GrammarScene: Start called");
-
-      try
-      {
-        // まずViewの初期化完了を待つ
-        await WaitForViewInitialization();
-
-        // データ取得を個別に実行し、エラーハンドリングを追加
-        try
-        {
-          currentUser = await DataManager.Instance.GetCurrentUserAsync();
-          Debug.Log($"GrammarScene: User data retrieved: {currentUser != null}");
-        }
-        catch (System.Exception ex)
-        {
-          Debug.LogError($"GrammarScene: Error getting user data: {ex.Message}");
-          currentUser = null;
-        }
-
-        try
-        {
-          grammarData = await DataManager.Instance.GetGrammarAllDataAsync();
-          Debug.Log($"GrammarScene: Grammar data retrieved: {grammarData?.Count ?? 0}");
-        }
-        catch (System.Exception ex)
-        {
-          Debug.LogError($"GrammarScene: Error getting grammar data: {ex.Message}");
-          // エラーが発生した場合は空のリストを使用
-          grammarData = new List<GrammarData>();
-        }
-
-        Debug.Log("GrammarScene: Start completed successfully");
-
-        // データを設定
-        SetDataToView();
-      }
-      catch (System.Exception ex)
-      {
-        Debug.LogError($"GrammarScene: Error in Start: {ex.Message}");
-      }
-    }
-
     protected override async Task OnInitializeAsync()
     {
-      // await base.OnInitializeAsync();
+      await base.OnInitializeAsync();
 
       currentUser = await DataManager.Instance.GetCurrentUserAsync();
-      grammarData = await DataManager.Instance.GetGrammarAllDataAsync();
+      grammarDataList = await DataManager.Instance.GetGrammarAllDataAsync();
+
+      grammarView.SetViewData(new GrammarViewData(currentUser, grammarDataList));
     }
     #endregion
 
@@ -87,13 +46,11 @@ namespace Scripts.Runtime.Views.Features.Grammar
 
     protected override async Task OnAfterActivate()
     {
-      // await base.OnAfterActivate();
-      Debug.Log("GrammarScene: OnAfterActivate started");
+      await base.OnAfterActivate();
 
       // Viewの表示状態を確認
       if (grammarView.isVisible && backFooterView.isVisible)
       {
-        Debug.Log("GrammarScene: Views already visible, setting data");
         // データを設定
         // SetDataToView();
         return;
@@ -103,7 +60,6 @@ namespace Scripts.Runtime.Views.Features.Grammar
       if (grammarView != null)
       {
         await ShowViewAsync<GrammarView>();
-        Debug.Log("GrammarScene: GrammarView shown");
 
         // View表示後にデータを設定
         // SetDataToView();
@@ -119,22 +75,6 @@ namespace Scripts.Runtime.Views.Features.Grammar
       await RefreshUserData();
     }
 
-    private void SetDataToView()
-    {
-      Debug.Log("GrammarScene: Setting data to view");
-
-      if (grammarView != null && currentUser != null && grammarData != null)
-      {
-        grammarView.SetUserData(currentUser);
-        grammarView.SetGrammarData(grammarData);
-        Debug.Log("GrammarScene: Data set to view successfully");
-      }
-      else
-      {
-        Debug.LogError($"GrammarScene: Cannot set data - View: {grammarView != null}, User: {currentUser != null}, Data: {grammarData != null}");
-      }
-    }
-
     private async Task RefreshUserData()
     {
       currentUser = await DataManager.Instance.GetCurrentUserAsync();
@@ -143,30 +83,6 @@ namespace Scripts.Runtime.Views.Features.Grammar
     protected override async Task OnBeforeDeactivate()
     {
       await base.OnBeforeDeactivate();
-    }
-
-    private async Task WaitForViewInitialization()
-    {
-      Debug.Log("GrammarScene: Waiting for view initialization");
-
-      // Viewの初期化完了を待つ
-      int maxWaitTime = 100; // 最大1秒待機
-      int waitCount = 0;
-
-      while (grammarView == null && waitCount < maxWaitTime)
-      {
-        await Task.Delay(10);
-        waitCount++;
-      }
-
-      if (grammarView != null)
-      {
-        Debug.Log("GrammarScene: View initialization completed");
-      }
-      else
-      {
-        Debug.LogError("GrammarScene: View initialization timeout");
-      }
     }
 
     protected override void SubscribeToEvents()

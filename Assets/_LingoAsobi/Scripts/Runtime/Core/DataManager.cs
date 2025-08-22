@@ -8,6 +8,7 @@ using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Cache;
 using Scripts.Runtime.Data.Models.Training;
 using Scripts.Runtime.Data.Models.Grammar;
+using System.Linq;
 
 namespace Scripts.Runtime.Core
 {
@@ -37,13 +38,14 @@ namespace Scripts.Runtime.Core
     // リポジトリ
     private UserRepository _userRepository;
     private CharacterRepository _characterRepository;
+    private CharacterFormationRepository _characterFormationRepository;
     private TrainingRepository _trainingRepository;
     private GrammarRepository _grammarRepository;
     // データキャッシュ
     private DataCache _cache;
 
     // 初期化フラグ
-    private bool _isInitialized = false;
+    public bool _isInitialized = false;
 
     // イベント
     public event Action OnDataInitialized;
@@ -76,6 +78,8 @@ namespace Scripts.Runtime.Core
         _userRepository = UserRepository.Instance;
 
         _characterRepository = CharacterRepository.Instance;
+
+        _characterFormationRepository = CharacterFormationRepository.Instance;
 
         _trainingRepository = TrainingRepository.Instance;
 
@@ -205,7 +209,15 @@ namespace Scripts.Runtime.Core
     }
 
     /// <summary>
-    /// キャラクターデータを取得
+    /// すべてのキャラクターを取得
+    /// </summary>
+    public async Task<List<CharacterData>> GetAllCharactersAsync()
+    {
+      return await _characterRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// 単一のキャラクターデータを取得
     /// </summary>
     public async Task<CharacterData> GetCharacterByIdAsync(string characterId)
     {
@@ -213,11 +225,27 @@ namespace Scripts.Runtime.Core
     }
 
     /// <summary>
-    /// すべてのキャラクターを取得
+    /// 複数のキャラクターデータを取得
     /// </summary>
-    public async Task<List<CharacterData>> GetAllCharactersAsync()
+    public async Task<List<CharacterData>> GetCharacterByIdsAsync(List<string> characterIds)
     {
-      return await _characterRepository.GetAllAsync();
+      return await _characterRepository.GetCharactersByIdsAsync(characterIds);
+    }
+
+    /// <summary>
+    /// すべてのキャラクターの編成を取得
+    /// </summary>
+    public async Task<List<CharacterFormationData>> GetAllCharacterFormationsAsync()
+    {
+      return await _characterFormationRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// 編成IDに合致するキャラクターの編成を取得
+    /// </summary>
+    public async Task<List<CharacterFormationData>> GetCharacterFormationByFormationIdAsync(int formationId)
+    {
+      return await _characterFormationRepository.GetAllByFormationIdAsync(formationId);
     }
 
     /// <summary>
@@ -245,13 +273,28 @@ namespace Scripts.Runtime.Core
     }
 
     /// <summary>
+    /// 文法データを取得
+    /// </summary>
+    public async Task<GrammarData> GetGrammarDataByIdAsync(int grammarId)
+    {
+      return await _grammarRepository.GetByIdAsync(grammarId.ToString());
+    }
+
+    /// <summary>
+    /// 文法データを取得
+    /// </summary>
+    public async Task<GrammarFloorData> GetGrammarFloorDataByIdAsync(int floorId)
+    {
+      return await _grammarRepository.GetGrammarFloorDataByIdAsync(floorId);
+    }
+
+    /// <summary>
     /// データを同期
     /// </summary>
     public async Task SyncDataAsync()
     {
       try
       {
-
         // キャッシュをクリア
         _cache.ClearAll();
 

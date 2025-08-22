@@ -9,6 +9,7 @@ using Scripts.Runtime.Utilities.Helpers;
 using Scripts.Runtime.Views.Features.Footer;
 using Scripts.Runtime.Data.Models.Character;
 using Scripts.Runtime.Data.Repositories;
+using Scripts.Runtime.Views.ViewData.Home;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -40,8 +41,7 @@ namespace Scripts.Runtime.Views.Features.Home
       }
 
       // HomeViewを初期化（ユーザーデータとキャラクターデータの両方を設定）
-      homeView.SetUserData(currentUser);
-      homeView.SetCharacterData(favoriteCharacter);
+      homeView.SetViewData(new HomeViewData(currentUser, favoriteCharacter));
     }
 
 

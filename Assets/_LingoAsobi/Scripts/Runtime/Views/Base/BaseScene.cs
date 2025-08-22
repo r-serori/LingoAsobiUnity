@@ -196,7 +196,7 @@ namespace Scripts.Runtime.Views.Base
       }
 
       // なければ最初に見つかったCanvasを使用
-      return FindObjectOfType<Canvas>();
+      return FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
     }
 
     /// <summary>
@@ -215,7 +215,7 @@ namespace Scripts.Runtime.Views.Base
 
         case ViewSearchMode.SceneWide:
           // シーン全体から検索（推奨）
-          foundViews = FindObjectsOfType<BaseView>(true);
+          foundViews = FindObjectsByType<BaseView>(FindObjectsSortMode.None);
           break;
 
         case ViewSearchMode.SpecificCanvas:
@@ -227,7 +227,7 @@ namespace Scripts.Runtime.Views.Base
           else
           {
             Debug.LogWarning($"[{sceneName}] Canvas not set, falling back to scene-wide search");
-            foundViews = FindObjectsOfType<BaseView>(true);
+            foundViews = FindObjectsByType<BaseView>(FindObjectsSortMode.None);
           }
           break;
 
@@ -328,14 +328,14 @@ namespace Scripts.Runtime.Views.Base
           return GetComponentInChildren<T>(true);
 
         case ViewSearchMode.SceneWide:
-          return FindObjectOfType<T>(true);
+          return FindFirstObjectByType<T>(FindObjectsInactive.Include);
 
         case ViewSearchMode.SpecificCanvas:
           if (mainCanvas != null)
           {
             return mainCanvas.GetComponentInChildren<T>(true);
           }
-          return FindObjectOfType<T>(true);
+          return FindFirstObjectByType<T>(FindObjectsInactive.Include);
 
         default:
           return null;

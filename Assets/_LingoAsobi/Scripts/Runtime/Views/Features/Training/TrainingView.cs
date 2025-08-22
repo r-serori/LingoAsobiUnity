@@ -13,6 +13,7 @@ using Scripts.Runtime.Core;
 using Scripts.Runtime.Utilities.Constants;
 using Scripts.Runtime.Views.Features.Header;
 using Scripts.Runtime.Data.Models.Training;
+using Scripts.Runtime.Views.ViewData.Training;
 
 namespace Scripts.Runtime.Views.Features.Training
 {
@@ -97,7 +98,6 @@ namespace Scripts.Runtime.Views.Features.Training
     {
       currentUser = user;
       profileHeaderView.SetUserData(currentUser);
-      UpdateDisplay();
     }
 
     /// <summary>
@@ -106,11 +106,6 @@ namespace Scripts.Runtime.Views.Features.Training
     public void SetTrainingData(TrainingData trainingData)
     {
       this.trainingData = trainingData;
-      UpdateDisplay();
-    }
-
-    protected override async Task LoadDataAsync()
-    {
     }
 
     protected override void UpdateDisplay()
@@ -118,6 +113,18 @@ namespace Scripts.Runtime.Views.Features.Training
       if (currentUser == null) return;
       // トレーニングデータ
       UpdateTrainingDataDisplay();
+    }
+
+    public void SetViewData(TrainingViewData data)
+    {
+      SetUserData(data.CurrentUser);
+      SetTrainingData(data.TrainingData);
+
+      UpdateDisplay();
+    }
+
+    protected override async Task LoadDataAsync()
+    {
     }
 
     private void UpdateTrainingDataDisplay()

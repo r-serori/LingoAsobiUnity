@@ -15,6 +15,8 @@ using Scripts.Runtime.Views.Features.Header;
 using Scripts.Runtime.Data.Models.Training;
 using Scripts.Runtime.Data.Models.Grammar;
 using System.Collections.Generic;
+using Scripts.Runtime.Views.ViewData.Grammar;
+using Scripts.Runtime.Views.Features.Grammar.GrammarTower;
 
 namespace Scripts.Runtime.Views.Features.Grammar
 {
@@ -25,24 +27,22 @@ namespace Scripts.Runtime.Views.Features.Grammar
   public class GrammarView : BaseView
   {
     [Header("Header")]
-    [SerializeField] public ProfileHeaderView profileHeaderView;
+    [SerializeField] private ProfileHeaderView profileHeaderView;
 
     [Header("Grammar Sections")]
     [SerializeField] private Transform sectionContainer; // セクションを配置するコンテナ
-    [SerializeField] private Button questSectionBoxButton; // QuestSectionBox Prefab
+    [SerializeField] private GameObject questSectionBoxPrefab; // QuestSectionBox Prefab
 
     private UserProfile currentUser;
-    private List<GrammarData> grammarData;
+    private List<GrammarData> grammarDataList;
 
     protected override void GetUIReferences()
     {
       base.GetUIReferences();
-      Debug.Log("GrammarView: GetUIReferences called");
 
       if (profileHeaderView == null)
       {
         profileHeaderView = GetComponentInChildren<ProfileHeaderView>();
-        Debug.Log($"GrammarView: ProfileHeaderView found: {profileHeaderView != null}");
       }
 
       if (sectionContainer == null)
@@ -54,92 +54,62 @@ namespace Scripts.Runtime.Views.Features.Grammar
           if (container.name.Contains("Container") || container.name.Contains("Content") || container.name.Contains("Panel"))
           {
             sectionContainer = container;
-            Debug.Log($"GrammarView: Found section container: {container.name}");
             break;
           }
         }
-
-        if (sectionContainer == null)
-        {
-          Debug.LogError("GrammarView: No suitable section container found");
-        }
       }
-
-      if (questSectionBoxButton == null)
-      {
-        Debug.LogError("GrammarView: questSectionBoxPrefab is not set in Inspector");
-      }
-      Debug.Log("GrammarView: GetUIReferences completed");
-    }
-
-    private void UpdateGrammarDataDisplay()
-    {
-      if (grammarData == null) return;
     }
 
     protected override void UpdateDisplay()
     {
-      Debug.Log("GrammarView: UpdateDisplay called");
 
       if (currentUser == null)
       {
-        Debug.LogWarning("GrammarView: currentUser is null");
         return;
       }
-
-      // UpdateGrammarDataDisplay();
 
       // 文法セクションの生成
       GenerateGrammarSections();
     }
+
     private void GenerateGrammarSections()
     {
-      Debug.Log("GrammarView: GenerateGrammarSections called");
 
-      if (grammarData == null)
+      if (grammarDataList == null)
       {
-        Debug.LogWarning("GrammarView: grammarData is null in GenerateGrammarSections");
         return;
       }
 
       if (sectionContainer == null)
       {
-        Debug.LogError("GrammarView: sectionContainer is null");
         return;
       }
 
-      if (questSectionBoxButton == null)
+      if (questSectionBoxPrefab == null)
       {
-        Debug.LogError("GrammarView: questSectionBoxPrefab is null");
         return;
       }
 
-      Debug.Log($"GrammarView: Generating {grammarData.Count} sections");
 
       // 既存のセクションをクリア
       ClearExistingSections();
 
       // 各文法データに対してセクションを生成
-      foreach (var grammarDataItem in grammarData)
+      foreach (var grammarDataItem in grammarDataList)
       {
-        var sectionButton = Instantiate(questSectionBoxButton, sectionContainer);
+        var sectionButton = Instantiate(questSectionBoxPrefab, sectionContainer);
         var questSectionBox = sectionButton.GetComponentInChildren<QuestSectionBox>();
 
         if (questSectionBox != null)
         {
           // データを設定
           questSectionBox.SetData(grammarDataItem.title, grammarDataItem.description);
-          Debug.Log($"GrammarView: Created section: {grammarDataItem.title}");
 
           // デフォルト画像を設定
           questSectionBox.SetDefaultImage();
 
           // クリックイベントを設定
           SetupSectionClickEvent(sectionButton, grammarDataItem);
-        }
-        else
-        {
-          Debug.LogError($"GrammarView: QuestSectionBox component not found on instantiated prefab");
         }
       }
     }
@@ -161,28 +131,21 @@ namespace Scripts.Runtime.Views.Features.Grammar
     /// <summary>
     /// セクションのクリックイベントを設定
     /// </summary>
-
-    private void SetupSectionClickEvent(Button sectionButton, GrammarData grammarData)
+    private void SetupSectionClickEvent(GameObject sectionBox, GrammarData grammarData)
     {
-      var button = sectionButton.GetComponent<Button>();
-      if (button != null)
-      {
-        button.onClick.AddListener(() => OnSectionClicked(grammarData));
-        Debug.Log($"GrammarView: Click event set for section: {grammarData.title}");
-      }
-      else
-      {
-        Debug.LogError($"GrammarView: Button component not found on section button");
-      }
+      var button = sectionBox.GetComponent<Button>();
+      button?.onClick.AddListener(() => OnSectionClicked(grammarData));
     }
+
     /// <summary>
     /// セクションがクリックされた時の処理
     /// </summary>
-    private void OnSectionClicked(GrammarData grammarData)
+    private async void OnSectionClicked(GrammarData grammarData)
     {
-
-      // TODO: セクション選択時の処理を実装
-      // 例：詳細画面への遷移、選択状態の更新など
+      // 選択IDを次シーンへ渡す
+      GrammarTowerScene.SelectedGrammarId = grammarData.id;
+      // シーン遷移
+      await SceneHelper.Instance.LoadSceneAsync(GameConstants.Scenes.GrammarTower);
     }
 
     public void SetUserData(UserProfile user)
@@ -191,24 +154,19 @@ namespace Scripts.Runtime.Views.Features.Grammar
       profileHeaderView.SetUserData(currentUser);
     }
 
-    public void SetGrammarData(List<GrammarData> grammarData)
+    public void SetGrammarData(List<GrammarData> grammarDataList)
     {
-      Debug.Log("GrammarView: SetGrammarData called");
-
-      this.grammarData = grammarData;
-      Debug.Log($"GrammarView: GrammarData count: {this.grammarData?.Count ?? 0}");
-
-      // データが設定されたら表示を更新
-      if (this.grammarData != null)
-      {
-        Debug.Log("GrammarView: Calling UpdateDisplay");
-        UpdateDisplay();
-      }
-      else
-      {
-        Debug.LogWarning("GrammarView: grammarData is null");
-      }
+      this.grammarDataList = grammarDataList;
     }
+
+    public void SetViewData(GrammarViewData data)
+    {
+      SetUserData(data.CurrentUser);
+      SetGrammarData(data.GrammarDataList);
+
+      UpdateDisplay();
+    }
+
     protected override async Task LoadDataAsync()
     {
       // 必要に応じてデータの非同期読み込みを実装

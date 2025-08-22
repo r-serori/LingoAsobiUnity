@@ -164,7 +164,7 @@ namespace Scripts.Runtime.Utilities
       currentStats.memoryUsagePercent = (float)currentStats.usedMemoryBytes / currentStats.totalMemoryBytes * 100f;
       currentStats.frameRate = Mathf.RoundToInt(1f / Time.unscaledDeltaTime);
       currentStats.deltaTime = Time.deltaTime;
-      currentStats.activeGameObjects = FindObjectsOfType<GameObject>().Length;
+      currentStats.activeGameObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None).Length;
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ namespace Scripts.Runtime.Utilities
     /// </summary>
     private void OptimizeCanvases()
     {
-      Canvas[] canvases = FindObjectsOfType<Canvas>();
+      Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
 
       foreach (Canvas canvas in canvases)
       {
@@ -203,7 +203,7 @@ namespace Scripts.Runtime.Utilities
     /// </summary>
     private void OptimizeGraphicRaycasters()
     {
-      UnityEngine.UI.GraphicRaycaster[] raycasters = FindObjectsOfType<UnityEngine.UI.GraphicRaycaster>();
+      UnityEngine.UI.GraphicRaycaster[] raycasters = FindObjectsByType<UnityEngine.UI.GraphicRaycaster>(FindObjectsSortMode.None);
 
       foreach (var raycaster in raycasters)
       {

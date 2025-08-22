@@ -12,6 +12,7 @@ using Scripts.Runtime.Utilities.Helpers;
 using Scripts.Runtime.Core;
 using Scripts.Runtime.Utilities.Constants;
 using Scripts.Runtime.Views.Features.Header;
+using Scripts.Runtime.Views.ViewData.Home;
 
 namespace Scripts.Runtime.Views.Features.Home
 {
@@ -103,13 +104,11 @@ namespace Scripts.Runtime.Views.Features.Home
     {
       currentUser = user;
       profileHeaderView.SetUserData(currentUser);
-      UpdateDisplay();
     }
 
     public void SetCharacterData(CharacterData character)
     {
       favoriteCharacter = character;
-      UpdateDisplay();
     }
 
     protected override async Task LoadDataAsync()
@@ -120,14 +119,6 @@ namespace Scripts.Runtime.Views.Features.Home
     {
       if (currentUser == null) return;
       // キャラクター
-      UpdateCharacterDisplay();
-    }
-
-    /// <summary>
-    /// キャラクター表示を更新
-    /// </summary>
-    private void UpdateCharacterDisplay()
-    {
       if (favoriteCharacter == null)
       {
         return;
@@ -142,6 +133,14 @@ namespace Scripts.Runtime.Views.Features.Home
           characterImage.sprite = sprite;
         }
       }
+    }
+
+    public void SetViewData(HomeViewData data)
+    {
+      SetUserData(data.CurrentUser);
+      SetCharacterData(data.FavoriteCharacter);
+
+      UpdateDisplay();
     }
 
     #endregion
